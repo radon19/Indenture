@@ -47,3 +47,8 @@ dist/
 #contracts
 /contracts/lib
 /contracts/README.md
+/contracts/out
+/contracts/cache
+/contracts/lib
+/contracts/broadcast
+/contracts/foundry.lock

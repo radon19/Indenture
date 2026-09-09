@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <clipPath id="frameClip">
+      <rect x="48" y="56" width="160" height="145" rx="8" ry="8"/>
+    </clipPath>
+  </defs>
+
+  <!-- Warm cream outer field with softly rounded corners -->
+  <rect width="256" height="256" rx="12" fill="#F4EFE5"/>
+
+  <!-- Dark inner frame -->
+  <rect x="48" y="56" width="160" height="145" rx="8" fill="#151311"/>
+
+  <!-- Continuous angular gold zig-zag, clipped cleanly to the frame.
+       Rounded joins soften the turns without making them curved. -->
+  <g clip-path="url(#frameClip)">
+    <path
+      d="M128 56 L141 70 L115 99 L141 128 L115 157 L141 186 L128 201"
+      fill="none"
+      stroke="#B3872A"
+      stroke-width="8"
+      stroke-linecap="round"
+      stroke-linejoin="round"/>
+  </g>
+</svg>
