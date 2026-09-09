@@ -1,5 +1,5 @@
 [profile.default]
-src = "contracts/src"
+src = "src"
 script = "script"
 test = "test"
 out = "out"
