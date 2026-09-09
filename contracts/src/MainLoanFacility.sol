@@ -31,6 +31,7 @@ contract MainLoanFacility {
     mapping(address => Position) public positions;
 
     bool private locked;
+    bool public paused;
 
     event Borrowed(
         address indexed user,
@@ -50,6 +51,9 @@ contract MainLoanFacility {
     event CollateralAdded(address indexed user, uint256 amount);
     event CollateralWithdrawn(address indexed user, uint256 amount);
     event Liquidated(address indexed borrower, address indexed by, uint256 seized, uint256 refund);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event Paused(address indexed by);
+    event Unpaused(address indexed by);
 
     error NotOwner();
     error ZeroAmount();
@@ -61,6 +65,8 @@ contract MainLoanFacility {
     error InsufficientLiquidity(uint256 requested, uint256 available);
     error NotLiquidatable();
     error Reentry();
+    error ZeroAddress();
+    error EnforcedPause();
 
     constructor(address score_, address stable_) {
         scores = IOnChainCreditScore(score_);
@@ -78,6 +84,28 @@ contract MainLoanFacility {
         locked = true;
         _;
         locked = false;
+    }
+
+    modifier whenNotPaused() {
+        if (paused) revert EnforcedPause();
+        _;
+    }
+
+    function pause() external onlyOwner {
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    function unpause() external onlyOwner {
+        paused = false;
+        emit Unpaused(msg.sender);
+    }
+
+    /// @notice Hands pool ownership to a multisig. One way per call.
+    function transferOwnership(address newOwner) external onlyOwner {
+        if (newOwner == address(0)) revert ZeroAddress();
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
     }
 
     //frontend — same number as creditScore.getCollateralBps
@@ -157,7 +185,7 @@ contract MainLoanFacility {
         return p.debt + p.accruedInterest + _pendingInterest(p);
     }
 
-    function borrow(uint256 debtAmount) external payable nonReentrant {
+    function borrow(uint256 debtAmount) external payable nonReentrant whenNotPaused {
         if (debtAmount == 0) revert ZeroAmount();
 
         uint32 colBps = scores.getCollateralBps(msg.sender);
@@ -179,14 +207,14 @@ contract MainLoanFacility {
         emit Borrowed(msg.sender, debtAmount, p.debt, p.collateralWei, colBps, rateBps);
     }
 
-    function addCollateral() external payable nonReentrant {
+    function addCollateral() external payable nonReentrant whenNotPaused {
         if (msg.value == 0) revert ZeroAmount();
         positions[msg.sender].collateralWei += msg.value;
         emit CollateralAdded(msg.sender, msg.value);
     }
 
     /// @notice Partial or full repay. Pays banked interest first, then principal.
-    function repay(uint256 amount) external nonReentrant {
+    function repay(uint256 amount) external nonReentrant whenNotPaused {
         Position storage p = positions[msg.sender];
         if (p.debt == 0 && p.accruedInterest == 0) revert NoDebt();
         if (amount == 0) revert ZeroAmount();
@@ -205,14 +233,14 @@ contract MainLoanFacility {
         emit Repaid(msg.sender, amount, interestPaid, principalPaid, p.debt);
     }
 
-    function withdrawCollateral(uint256 amountWei) external nonReentrant {
+    function withdrawCollateral(uint256 amountWei) external nonReentrant whenNotPaused {
         Position storage p = positions[msg.sender];
         if (amountWei == 0) revert ZeroAmount();
         if (amountWei > p.collateralWei) revert ExceedsCollateral(amountWei, p.collateralWei);
 
         p.collateralWei -= amountWei;
         if (p.debt > 0) {
-            uint256 need = _collateralFor(p.debt, scores.getCollateralBps(msg.sender));
+            uint256 need = _collateralFor(_owed(p), scores.getCollateralBps(msg.sender));
             if (p.collateralWei < need) revert UnsafeWithdraw();
         }
 
@@ -223,15 +251,15 @@ contract MainLoanFacility {
 
     /// @notice Anyone may liquidate an undercollateralized position at the current tier.
     /// Seized collateral covers the debt and stays in the pool; excess refunds the borrower.
-    function liquidate(address borrower) external nonReentrant {
+    function liquidate(address borrower) external nonReentrant whenNotPaused {
         Position storage p = positions[borrower];
         if (p.debt == 0) revert NoDebt();
         _accrue(p);
 
-        uint256 need = _collateralFor(p.debt, scores.getCollateralBps(borrower));
+        uint256 need = _collateralFor(_owed(p), scores.getCollateralBps(borrower));
         if (p.collateralWei >= need) revert NotLiquidatable();
 
-        uint256 owedWei = (p.debt + p.accruedInterest) * 1e12;
+        uint256 owedWei = _owed(p) * 1e12;
         uint256 seized = p.collateralWei > owedWei ? owedWei : p.collateralWei;
         uint256 refund = p.collateralWei - seized;
 
@@ -248,8 +276,14 @@ contract MainLoanFacility {
         if (!stable.transferFrom(msg.sender, address(this), amount)) revert TransferFailed();
     }
 
-    function _accrue(Position storage p) private {
-        if (p.debt == 0) {
+    /// @dev Principal + banked + pending interest, in stable units. Health is
+    /// measured against everything owed, or time could never liquidate.
+    function _owed(Position storage p) private view returns (uint256) {
+        Position memory m = p;
+        return m.debt + m.accruedInterest + _pendingInterest(m);
+    }
+
+    function _accrue(Position storage p) private {        if (p.debt == 0) {
             p.lastAccrual = uint64(block.timestamp);
             return;
         }

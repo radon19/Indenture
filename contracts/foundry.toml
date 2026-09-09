@@ -5,6 +5,7 @@ test = "test"
 out = "out"
 cache_path = "cache"
 libs = ["lib"]
+fs_permissions = [{ access = "read", path = "./test/fixtures/" }, { access = "write", path = "./proof.json" }]
 
 solc_version = "0.8.28"
 optimizer = true
@@ -17,4 +18,8 @@ bypass_prevrandao = true
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
 creditcoin = "${CREDITCOIN_RPC_URL}"
+
+[invariant]
+runs = 32
+depth = 5
 

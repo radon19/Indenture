@@ -75,6 +75,13 @@ contract OnChainCreditScore is ASCBase {
         Platinum
     }
 
+    /// @notice A source chain's block-height-to-time reference.
+    struct ChainAnchor {
+        uint64 height;
+        uint64 timestamp;
+        uint32 secondsPerBlock;
+    }
+
     struct Parsed {
         address repayUser;
         address liqUser;
@@ -99,15 +106,19 @@ contract OnChainCreditScore is ASCBase {
         uint8 venues;
         // INTREST  1800 = 18.00% APR
         uint16 interestBps;
+        // Earliest proven source-chain activity. The age axis; scoring term pending.
+        uint64 oldestActivity;
     }
 
-    mapping(address => CreditProfile) private _profiles;
+    mapping(address => CreditProfile) internal _profiles;
     mapping(uint64 => mapping(address => SourceKind)) public sources;
     mapping(address => uint8) public tokenDecimals;
     // USD value of 1 whole token, scaled 1e18. Owner-pushed (no Chainlink on Creditcoin).
     mapping(address => uint256) public priceUSD18;
     // Comet emitter -> its base loan token. One Comet = one base asset.
     mapping(address => address) public cometBaseToken;
+    // Source-chain height -> wall-clock anchors. Proofs cover height, not time.
+    mapping(uint64 => ChainAnchor) public chainAnchors;
 
     address public owner;
     bool public paused;
@@ -120,8 +131,10 @@ contract OnChainCreditScore is ASCBase {
     event DefaultRecorded(address indexed user, uint16 defaults);
     event Paused(address indexed by);
     event Unpaused(address indexed by);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event PriceSet(address indexed reserve, uint256 priceUSD18);
     event ReserveRegistered(address indexed reserve, uint8 decimals);
+    event ChainAnchorRegistered(uint64 indexed chainKey, uint64 height, uint64 timestamp, uint32 secondsPerBlock);
     // INTREST
     event InterestUpdated(address indexed user, uint16 interestBps);
 
@@ -133,6 +146,7 @@ contract OnChainCreditScore is ASCBase {
     error ZeroAddress();
     error UnknownReserve(address reserve);
     error UnknownPrice(address reserve);
+    error InvalidAnchor();
     error FixedPrice(address reserve);
     error ZeroPrice();
     error PriceTooHigh(uint256 price, uint256 maximum);
@@ -186,6 +200,13 @@ contract OnChainCreditScore is ASCBase {
         emit Unpaused(msg.sender);
     }
 
+    /// @notice Hands ownership (prices, markets, pause) to a multisig. One way per call.
+    function transferOwnership(address newOwner) external onlyOwner {
+        if (newOwner == address(0)) revert ZeroAddress();
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
     /// @notice Push USD price of 1 whole token, scaled 1e18 (e.g. WETH = 3000e18).
     /// @dev USDC/USDT are fixed at $1. Zero and absurd values revert.
     function setPrice(address reserve, uint256 price) external onlyOwner {
@@ -204,6 +225,16 @@ contract OnChainCreditScore is ASCBase {
         emit ReserveRegistered(reserve, decimals);
     }
 
+    /// @notice Anchor a source chain's height to wall-clock time for the age axis.
+    function registerChainAnchor(uint64 chainKey, uint64 height, uint64 timestamp, uint32 secondsPerBlock)
+        external
+        onlyOwner
+    {
+        if (timestamp == 0 || secondsPerBlock == 0) revert InvalidAnchor();
+        chainAnchors[chainKey] = ChainAnchor(height, timestamp, secondsPerBlock);
+        emit ChainAnchorRegistered(chainKey, height, timestamp, secondsPerBlock);
+    }
+
     function getScore(address user) public view returns (uint16) {
         if (!_profiles[user].isInitialized) return DEFAULT_SCORE;
         return _profiles[user].score;
@@ -215,6 +246,10 @@ contract OnChainCreditScore is ASCBase {
 
     function getMaxRepayment(address user) public view returns (uint256) {
         return _profiles[user].maxRepayment18;
+    }
+
+    function getOldestActivity(address user) public view returns (uint64) {
+        return _profiles[user].oldestActivity;
     }
 
     function getVenues(address user) public view returns (uint8) {
@@ -252,6 +287,7 @@ contract OnChainCreditScore is ASCBase {
             uint16 score,
             uint256 capacity18,
             uint256 maxRepayment18,
+            uint64 oldestActivity,
             uint8 venues,
             uint16 venueCount,
             uint16 defaults,
@@ -266,6 +302,7 @@ contract OnChainCreditScore is ASCBase {
         score = p.isInitialized ? p.score : DEFAULT_SCORE;
         capacity18 = p.capacity18;
         maxRepayment18 = p.maxRepayment18;
+        oldestActivity = p.oldestActivity;
         venues = p.venues;
         venueCount = _venueCount(p.venues);
         defaults = p.defaults;
@@ -322,7 +359,7 @@ contract OnChainCreditScore is ASCBase {
         return address(uint160(uint256(topic)));
     }
 
-    function _value18(address token, uint256 raw) private view returns (uint256) {
+    function _value18(address token, uint256 raw) internal view returns (uint256) {
         uint8 d = tokenDecimals[token];
         if (d == 0) revert UnknownReserve(token);
         uint256 price = priceUSD18[token];
@@ -430,6 +467,7 @@ contract OnChainCreditScore is ASCBase {
 
         if (p.liqUser != address(0)) {
             decreaseScore(p.liqUser, p.liqSeverity18);
+            _touch(p.liqUser, _sourceTime(chainKey, blockHeight));
         } else if (p.repayUser != address(0) && _selfFunded(p)) {
             emit FlashLoanIgnored(p.repayUser);
         } else if (p.repayUser != address(0)) {
@@ -438,10 +476,29 @@ contract OnChainCreditScore is ASCBase {
             if (p.defiRepay && ScoreCalculateLib.getPoints(amount18) > 0) {
                 _addCapacity(p.repayUser, amount18, p.repayVenue);
             }
+            _touch(p.repayUser, _sourceTime(chainKey, blockHeight));
         }
 
         queryId;
-        blockHeight;
+    }
+
+    /// @dev Proof-covered height to approximate wall-clock time. Falls back to
+    /// import time without an anchor; a later older proof corrects it downward.
+    function _sourceTime(uint64 chainKey, uint64 blockHeight) private view returns (uint64) {
+        ChainAnchor memory a = chainAnchors[chainKey];
+        if (a.timestamp == 0 || blockHeight == 0) return uint64(block.timestamp);
+        if (blockHeight >= a.height) {
+            return a.timestamp + uint64(blockHeight - a.height) * a.secondsPerBlock;
+        }
+        uint64 delta = uint64(a.height - blockHeight) * a.secondsPerBlock;
+        return delta >= a.timestamp ? uint64(block.timestamp) : a.timestamp - delta;
+    }
+
+    /// @dev Records earliest proven activity. Downward-only: older proofs help,
+    /// newer ones cannot inflate tenure.
+    function _touch(address user, uint64 observed) private {
+        CreditProfile storage p = _profiles[user];
+        if (p.oldestActivity == 0 || observed < p.oldestActivity) p.oldestActivity = observed;
     }
 
     function _ingestLog(
