@@ -75,12 +75,12 @@ export type AggregateTypes = {
     };
   };
   readonly count: {
-    readonly byCodec: {};
+    readonly byCodec: {0};
     readonly withoutInput: { readonly output: 'pg/int8number@1'; readonly nullable: false };
     readonly anyInput: { readonly output: 'pg/int8number@1'; readonly nullable: false };
   };
   readonly countBigInt: {
-    readonly byCodec: {};
+    readonly byCodec: {0};
     readonly withoutInput: { readonly output: 'pg/int8@1'; readonly nullable: false };
     readonly anyInput: { readonly output: 'pg/int8@1'; readonly nullable: false };
   };
@@ -595,7 +595,7 @@ type ContractBase = Omit<
       readonly scalarList: true;
     };
   };
-  readonly extensions: {};
+  readonly extensions: {0};
   readonly execution: {
     readonly executionHash: ExecutionHash;
     readonly mutations: {
@@ -621,7 +621,7 @@ type ContractBase = Omit<
       ];
     };
   };
-  readonly meta: {};
+  readonly meta: {0};
 
   readonly profileHash: ProfileHash;
 };

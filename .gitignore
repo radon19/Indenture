@@ -46,3 +46,4 @@ dist/
 
 #contracts
 /contracts/lib
+/contracts/README.md
