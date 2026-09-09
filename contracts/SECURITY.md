@@ -96,9 +96,13 @@ Shrunk by: `transferOwnership` on all three contracts (tested handover),
 stables unchangeable, price bounds, pause that never burns proofs. The pool
 carries its own pause (all five money paths freeze, funding stays open so
 rescue never needs unpausing first), ownership handover, and no receive
-function — stray ETH bounces instead of locking silently. The Safe
-move is operational, not code: deploy 2-of-3, transfer, backend holds one
-seat. Timelock next.
+function — stray ETH bounces instead of locking silently.
+
+Multisig status: code-ready, not yet live. The handover path is implemented
+and tested, but app.safe.global does not list Creditcoin testnet, so there is
+no Safe to hand to — raw EOA ownership is a conscious testnet-only posture
+(no real funds at stake). Mainnet handover is: deploy 2-of-3 Safe, transfer
+all three contracts, backend holds one seat. Timelock after that.
 
 ### T12 — Stale backend prices
 No on-chain staleness tripwire can exist (the chain cannot know the world).
