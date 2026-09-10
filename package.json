@@ -7,29 +7,26 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "contract:emit": "prisma contract emit"
+    "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/orm-postgres": "^8.0.0-rc.8",
-    "@rainbow-me/rainbowkit": "^2.2.11",
+    "@rainbow-me/rainbowkit": "2",
     "@tanstack/react-query": "^5.102.8",
+    
     "dotenv": "^17.4.2",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "viem": "^2.56.3",
-    "wagmi": "^3.7.7"
+    "viem": "2",
+    "wagmi": "2"
   },
   "devDependencies": {
-    "@prisma/cli-engine": "0.2.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
-    "prisma": "^8.0.0-rc.10",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

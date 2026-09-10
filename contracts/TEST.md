@@ -51,7 +51,6 @@ proof payload that was ingested. Regenerate anytime: `forge test
 against `EvmV1Decoder`, or cross-check real-log entries via `cast receipt`.
 
 ## Ground truth (real chain data, not synthetic)
-
 `test/fixtures/` holds exact log fields fetched from Ethereum mainnet:
 
 - `aave-repay.json` — Aave V3 `Repay`, 81.770675 USDT self-repay, block 25749456, tx `0x743c…adaab` → scores +16, capacity $81.77.
@@ -74,3 +73,24 @@ fixture: `cast receipt <txHash> --rpc-url <mainnet>`.
 2. Fork tests replaying full receipts (not just logs) are the next rung.
 3. Invariant runs are trimmed (`runs = 32, depth = 5`) for speed; raise them in CI.
 4. `script/` needs `SEPOLIA_RPC_URL` / `CREDITCOIN_RPC_URL` and a funded key; untouched by this suite.
+
+## Frontend ABIs
+
+`../app/lib/abi.ts` (`creditScoreAbi`, `loanPoolAbi`, `loanFacilityAbi`,
+`mockUSDCABI`) is generated from `out/` — never hand-edit. Regenerate after
+any contract change:
+
+```bash
+cd contracts && forge build && bun -e '
+import { readFileSync, writeFileSync } from "fs";
+const load = (p) => JSON.parse(readFileSync(p, "utf8")).abi;
+const abi = {
+  creditScore: load("out/creditScore.sol/OnChainCreditScore.json"),
+  loanPool: load("out/MainLoanFacility.sol/MainLoanFacility.json"),
+  loanFacility: load("out/LoanFacility.sol/LoanFacility.json"),
+  mockUSDC: load("out/MockUSDC.sol/MockUSDC.json"),
+};
+let out = "// AUTO-GENERATED from contracts/out — do not hand-edit. Regenerate with the bun one-liner in TEST.md.\n";
+for (const [name, a] of Object.entries(abi)) out += `export const ${name}Abi = ${JSON.stringify(a)} as const;\n\n`;
+writeFileSync("../app/lib/abi.ts", out);'
+```

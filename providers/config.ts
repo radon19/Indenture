@@ -6,9 +6,9 @@ import {
 
 const config = getDefaultConfig({
   appName: 'Indenture',
-  projectId: 'YOUR_PROJECT_ID',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID??"",
   chains: [sepolia, creditCoin3Testnet],
-  ssr: true, // If your dApp uses server side rendering (SSR)
+  ssr: true, 
 });
 
 export default config;
