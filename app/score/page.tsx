@@ -135,7 +135,7 @@ export default function ScorePage() {
 
   /** Single entry point for submission: validates, sends, and owns every outcome. */
   function handleSubmit() {
-    if (!address || !checked || submitting) return;
+    if (!address || !checked || submitting || simLoading) return;
     if (Date.now() - checked.checkedAt > PROOF_TTL_MS) {
       setSubmitError("this proof is stale — press Check again for a fresh one, then submit promptly");
       return;
@@ -188,7 +188,7 @@ export default function ScorePage() {
 
   // Dry-run the exact calldata on every checked proof: doomed txs surface here,
   // with names, instead of dying silently inside the wallet.
-  const { error: simError } = useSimulateContract({
+  const { error: simError, isLoading: simLoading } = useSimulateContract({
     address: ADDRESSES.creditcoinTestnet.creditScore,
     abi: creditScoreAbi,
     functionName: "execute",
@@ -437,14 +437,16 @@ export default function ScorePage() {
                   </p>
                 ) : (
                   <Btn
-                    disabled={!address || submitting}
+                    disabled={!address || submitting || simLoading}
                     onClick={handleSubmit}
                   >
                     {!address
                       ? "Connect wallet to submit"
-                      : submitting
-                        ? "Submitting…"
-                        : "Submit on-chain"}
+                      : simLoading
+                        ? "Simulating…"
+                        : submitting
+                          ? "Submitting…"
+                          : "Submit on-chain"}
                   </Btn>
                 )
                 )}
