@@ -58,7 +58,7 @@ Bun.serve({
     if (throttled(ip)) return fail(429, "rate limited — retry in a minute");
     if (!authorized(req)) return fail(401, "unauthorized worker call");
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
@@ -83,6 +83,7 @@ Bun.serve({
       return new Response(
         JSON.stringify({
           ok: true as const,
+          checkedAt: Date.now(),
           summary: { txHash, blockNumber: rec.blockNumber, ...summary },
           execute: args,
         }),

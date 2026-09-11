@@ -20,8 +20,11 @@ export type ProofSummary = {
   amountRaw: string | null;
 };
 
-function pick(obj: any, keys: string[]) {
-  for (const k of keys) if (obj?.[k] != null) return obj[k];
+type Json = Record<string, unknown>;
+function pick(obj: unknown, keys: string[]) {
+  if (typeof obj !== "object" || obj === null) return undefined;
+  const rec = obj as Json;
+  for (const k of keys) if (rec[k] != null) return rec[k];
   return undefined;
 }
 
@@ -33,14 +36,14 @@ export function need(name: string): string {
 
 /** Short human message out of ethers/RPC blobs. Never leaks payload JSON. */
 export function cleanError(e: unknown): string {
-  const anyE = e as any;
+  const rec = (typeof e === "object" && e !== null ? e : {}) as Record<string, unknown>;
   const raw =
-    typeof anyE?.shortMessage === "string"
-      ? anyE.shortMessage
-      : typeof anyE?.reason === "string"
-        ? anyE.reason
-        : typeof anyE?.message === "string"
-          ? anyE.message
+    typeof rec.shortMessage === "string"
+      ? rec.shortMessage
+      : typeof rec.reason === "string"
+        ? rec.reason
+        : typeof rec.message === "string"
+          ? rec.message
           : e instanceof Error
             ? e.message
             : String(e);
@@ -62,7 +65,7 @@ export function rpcFor(chainKey: number): string | undefined {
   );
 }
 
-function normSibling(e: any, i: number) {
+function normSibling(e: unknown, i: number) {
   const hash = pick(e, ["hash", "sibling", "node"]);
   let isLeft = pick(e, ["isLeft", "isLeftSide", "left"]);
   if (typeof isLeft === "number") isLeft = isLeft !== 0;
@@ -159,10 +162,10 @@ export async function proveTx(txHash: string, chainKey: number): Promise<Execute
   const builder = new proofProvider.service.ProofBuilder(chainKey, need("CREDITCOIN_PROOF_BUILDER_URL"));
   const result = await builder.getProof(txHash);
   if (!result.success || !result.data) {
-    throw new Error(String((result as any).error ?? "proof failed"));
+    throw new Error(String((result as { error?: unknown }).error ?? "proof failed"));
   }
 
-  const p: any = result.data;
+  const p: Json = (result.data ?? {}) as Json;
   const merkle = p.merkleProof ?? {};
   const cont = p.continuityProof ?? {};
   const rawSiblings = (pick(merkle, ["siblings", "proof"]) ?? []) as unknown[];
