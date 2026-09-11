@@ -10,6 +10,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@x402/core": "2.25.0",
+    "@x402/evm": "2.25.0",
+    "@x402/extensions": "2.25.0",
+    "@x402/svm": "2.25.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7",
     "@rainbow-me/rainbowkit": "2",
