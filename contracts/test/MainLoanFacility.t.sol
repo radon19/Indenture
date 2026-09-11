@@ -103,4 +103,41 @@ contract MainLoanFacilityTest is Test {
         vm.expectRevert(MainLoanFacility.NotOwner.selector);
         pool.seedStable(1);
     }
+
+    function test_borrow_topUpAccumulates() public {
+        _borrowAlice(100e6, 150 ether);
+        _borrowAlice(50e6, 100 ether);
+        (uint256 col, uint256 debt,) = pool.getPosition(alice);
+        assertEq(col, 250 ether);
+        assertEq(debt, 150e6);
+    }
+
+    function test_borrow_rejectsZero() public {
+        vm.prank(alice);
+        vm.expectRevert(MainLoanFacility.ZeroAmount.selector);
+        pool.borrow{value: 1 ether}(0);
+    }
+
+    function test_repay_rejectsWithoutDebt() public {
+        vm.prank(alice);
+        vm.expectRevert(MainLoanFacility.NoDebt.selector);
+        pool.repay(10e6);
+    }
+
+    function test_addCollateral_eventAndZero() public {
+        vm.prank(alice);
+        vm.expectRevert(MainLoanFacility.ZeroAmount.selector);
+        pool.addCollateral{value: 0}();
+        vm.prank(alice);
+        pool.addCollateral{value: 5 ether}();
+        (uint256 col,,) = pool.getPosition(alice);
+        assertEq(col, 5 ether);
+    }
+
+    function test_poolOwnership_moves() public {
+        pool.transferOwnership(alice);
+        assertEq(pool.owner(), alice);
+        vm.expectRevert(MainLoanFacility.NotOwner.selector);
+        pool.pause();
+    }
 }

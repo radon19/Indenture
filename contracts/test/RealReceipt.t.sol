@@ -59,7 +59,7 @@ contract RealReceiptTest is Test {
         (EvmV1Decoder.LogEntryTuple memory entry, uint64 chainKey) = _loadLog("compound-supply.json");
         address user = address(uint160(uint256(entry.topics[2])));
         _ingestOne(entry, chainKey);
-        assertEq(scores.getScore(user), 650); // 600 + 50 for $1000
+        assertEq(scores.getScore(user), 632); // 600 + 32 for $1000
         assertEq(scores.getCapacity(user), 1000e18);
         assertEq(scores.getVenues(user), 4);
     }

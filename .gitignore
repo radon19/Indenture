@@ -52,3 +52,6 @@ dist/
 /contracts/lib
 /contracts/broadcast
 /contracts/foundry.lock
+
+/.safebuild/cache
+/.safebuild/out

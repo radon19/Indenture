@@ -34,6 +34,9 @@ contract OnChainCreditScore is ASCBase {
     uint256 public constant CAP_SILVER = 100e18;
     uint256 public constant CAP_PLATINUM = 1_000e18;
     uint256 public constant MAX_PRICE_USD18 = 1_000_000e18;
+    // Tenure: proven history older than this earns the age bonus, capped.
+    uint64 public constant AGE_SEASONING = 30 days;
+    uint16 public constant AGE_BONUS = 10;
     // Default severity lines (USD): dust stings, mid bites, large hits like before.
     uint256 public constant SMALL_DEFAULT_MAX = 50e18;
     uint256 public constant MID_DEFAULT_MAX = 1_000e18;
@@ -237,7 +240,18 @@ contract OnChainCreditScore is ASCBase {
 
     function getScore(address user) public view returns (uint16) {
         if (!_profiles[user].isInitialized) return DEFAULT_SCORE;
-        return _profiles[user].score;
+        uint256 total = uint256(_profiles[user].score) + _ageBonus(_profiles[user].oldestActivity);
+        if (total > MAX_SCORE) total = MAX_SCORE;
+        return uint16(total);
+    }
+
+    /// @notice Tenure payout: seasoned proven history earns a flat bonus.
+    /// Read live — tenure grows with the wall clock, not with ingests.
+    function _ageBonus(uint64 oldestActivity) private view returns (uint256) {
+        if (oldestActivity == 0) return 0;
+        if (block.timestamp <= oldestActivity) return 0;
+        if (uint256(block.timestamp) - oldestActivity < AGE_SEASONING) return 0;
+        return AGE_BONUS;
     }
 
     function getCapacity(address user) public view returns (uint256) {
@@ -300,6 +314,10 @@ contract OnChainCreditScore is ASCBase {
     {
         CreditProfile memory p = _profiles[user];
         score = p.isInitialized ? p.score : DEFAULT_SCORE;
+        if (p.isInitialized) {
+            uint256 total = uint256(score) + _ageBonus(p.oldestActivity);
+            score = total > MAX_SCORE ? MAX_SCORE : uint16(total);
+        }
         capacity18 = p.capacity18;
         maxRepayment18 = p.maxRepayment18;
         oldestActivity = p.oldestActivity;

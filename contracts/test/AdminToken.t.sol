@@ -81,6 +81,13 @@ contract AdminTokenTest is Test {
         assertTrue(scores.paused());
     }
 
+    function test_mockOwnership_moves() public {
+        usdc.transferOwnership(stranger);
+        assertEq(usdc.owner(), stranger);
+        vm.expectRevert(MockUSDC.NotOwner.selector);
+        usdc.mint(owner, 1);
+    }
+
     function test_ownership_rejectsZero() public {
         vm.expectRevert(OnChainCreditScore.ZeroAddress.selector);
         scores.transferOwnership(address(0));

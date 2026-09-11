@@ -25,12 +25,14 @@ contract ScoreMathTest is Test {
         assertEq(ScoreCalculateLib.getPoints(100e18 - 1), 16);
         assertEq(ScoreCalculateLib.getPoints(100e18), 32); // $100
         assertEq(ScoreCalculateLib.getPoints(1_000e18 - 1), 32);
-        assertEq(ScoreCalculateLib.getPoints(1_000e18), 50); // $1000+
+        assertEq(ScoreCalculateLib.getPoints(1_000e18), 32); // $1000
+        assertEq(ScoreCalculateLib.getPoints(2_500e18 - 1), 32);
+        assertEq(ScoreCalculateLib.getPoints(2_500e18), 50); // $2500+
         assertEq(ScoreCalculateLib.getPoints(1_000_000e18), 50);
     }
 
     function test_applyIncrease_capsAtMax() public pure {
-        (uint16 next, uint16 gained) = ScoreCalculateLib.applyIncrease(880, 900, 1_000e18);
+        (uint16 next, uint16 gained) = ScoreCalculateLib.applyIncrease(880, 900, 2_500e18);
         assertEq(gained, 50);
         assertEq(next, 900);
     }

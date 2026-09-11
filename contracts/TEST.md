@@ -1,6 +1,6 @@
 # TEST.md — Indenture credit suite
 
-91 checks, 0 failing, ~100ms. Every claim below fails if you break it.
+108 checks, 0 failing, ~100ms. Every claim below fails if you break it.
 
 ```bash
 cd contracts
@@ -24,15 +24,16 @@ The score contract verifies through Creditcoin's block-prover precompile
 
 | File | Checks | Pins |
 |---|---|---|
-| `ScoreMath.t.sol` | 8 (5 unit + 3 fuzz) | Points brackets per dollar tier, $0.001 dust line, 900 cap, decimals normalisation, points ≤ 50, monotonic, cap-safe |
+| `ScoreMath.t.sol` | 8 (5 unit + 3 fuzz) | Points brackets per dollar tier ($2500 top line), $0.001 dust line, 900 cap, decimals normalisation, points ≤ 50, monotonic, cap-safe |
 | `TierStake.t.sol` | 15 (14 + 1 fuzz) | Default 600/Bronze, $100→Silver, $100×10 wash stalls at 450/Silver (never Platinum), $1000+3 venues→Platinum, Gold needs 2 venues, default caps at Gold, −20/−60/−120 brackets, 400 floor, 900 cap, counter saturation, interest/collateral follow tier, high-water max, zero/venue-less no-ops |
-| `Ingest.t.sol` | 27 | Aave repay→score+capacity+venue, dust leaves no ghost profile, `UnknownReserve`/`UnknownPrice` reverts, matched flash pair ignored, cross-pool refinance scores, multi-repay accumulates, small/large liquidation penalties, Compound supply/absorb/withdraw paths, facility score-only + small default, pause/unpause + owner-only, unknown action, failed source tx, empty tx, all `setPrice` guards, anchor guards, age oldest-wins + no-anchor fallback, same-asset refinance still flags (documented), different-user borrow scores, malformed borrow reverts, unknown absorb collateral reverts, foreign borrow-shape can't torch facility repay |
+| `Ingest.t.sol` | 29 | Aave repay→score+capacity+venue, dust leaves no ghost profile, `UnknownReserve`/`UnknownPrice` reverts, matched flash pair ignored, cross-pool refinance scores, multi-repay accumulates, small/large liquidation penalties, Compound supply/absorb/withdraw paths, facility score-only + small default, pause/unpause + owner-only, unknown action, failed source tx, empty tx, all `setPrice` guards, anchor guards, age oldest-wins + no-anchor fallback, tenure seasoning/bonus/cap (+10 past 30d, 900 ceiling), same-asset refinance still flags (documented), different-user borrow scores, malformed borrow reverts, unknown absorb collateral reverts, foreign borrow-shape can't torch facility repay, cross-comet refinance, venue-bit accounting |
 | `Integration.t.sol` | 6 | Gold terms through the live registry, frozen rate survives downgrade, pool pause matrix (funding stays open), pool ownership handover, stray ETH bounces, exact liquidation refund math |
-| `Invariants.t.sol` | 3 | Score stays in [400, 900], max ≤ sum, terms in-bounds — under 32×5 random call soup |
+| `Invariants.t.sol` | 4 | Score stays in [400, 900], max ≤ sum, terms in-bounds, age never future-dated — under 32×5 random call soup with live ingests |
 | `LoanFacility.t.sol` | 10 (8 + 2 fuzz) | Self-custody open, zero rejects, partial/full repay, stranger-pays-borrower-earns, unknown/closed/overpay rejects, default only when due + once, post-default settlement, repay never exceeds principal, due-date overflow bounds |
-| `MainLoanFacility.t.sol` | 9 | Borrow locks/pays, thin-collateral and empty-pool rejects, 18%-on-$100 yearly interest via warp, interest-first repay + full close, withdraw health gate, time-driven liquidation to pool, healthy-liquidation revert, owner-only seeding |
-| `AdminToken.t.sol` | 8 (7 + 1 fuzz) | Owner-only mint, allowance flow, owner-only setters, reserve onboarding end-to-end, supply conservation, multisig handover + zero-guard, price cap boundary |
+| `MainLoanFacility.t.sol` | 14 | Borrow locks/pays/top-ups, thin-collateral and empty-pool rejects, zero guards, interest-first repay + full close, withdraw health gate, time-driven liquidation to pool, healthy-liquidation revert, owner-only seeding + ownership |
+| `AdminToken.t.sol` | 9 (8 + 1 fuzz) | Owner-only mint, allowance flow, owner-only setters, reserve onboarding end-to-end, supply conservation, multisig handover + zero-guard, price cap boundary, mock ownership |
 | `RealReceipt.t.sol` | 4 | Real mainnet logs through the real decoder (see below) |
+| `WholeReceipt.t.sol` | 5 | Entire receipts replayed: Aave repay + junk, Compound supply, unknown-coin fail-loud, GHO onboarding → −120, 338-log Spark dust liquidation |
 | `VolumeProof.t.sol` | 3 | 40-repay × 5-liquidation volume run (see below) |
 
 ## Volume run + proof.json (40 repays, 5 liquidations)

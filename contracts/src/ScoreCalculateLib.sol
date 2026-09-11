@@ -13,7 +13,7 @@ library ScoreCalculateLib {
         return amount / (10 ** (decimals - 18));
     }
 
-    /// @notice Dust = 0. ≥ 1000 units = 50. Each extra ~10x money doubles points.
+    /// @notice Dust = 0. ≥ 2500 units = 50. Each extra ~10x money doubles points.
     function getPoints(uint256 amount18) internal pure returns (uint16) {
         if (amount18 < DUST) return 0;
         if (amount18 < 1e16) return 1;
@@ -21,7 +21,7 @@ library ScoreCalculateLib {
         if (amount18 < 1e18) return 4;
         if (amount18 < 10e18) return 8;
         if (amount18 < 100e18) return 16;
-        if (amount18 < 1_000e18) return 32;
+        if (amount18 < 2_500e18) return 32;
         return MAX_POINTS;
     }
 

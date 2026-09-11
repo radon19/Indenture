@@ -277,8 +277,7 @@ contract IngestTest is Test {
         assertEq(scores.getOldestActivity(user), 1_700_000_000 + 120); // newer never inflates
     }
 
-    function test_age_fallsBackToNowWithoutAnchor() public {
-        vm.warp(1_800_000_000);
+    function test_age_fallsBackToNowWithoutAnchor() public {        vm.warp(1_800_000_000);
         EvmV1Decoder.LogEntryTuple[] memory logs = new EvmV1Decoder.LogEntryTuple[](1);
         logs[0] = _aaveRepayLog(scores.USDC(), user, 500e6);
         bytes memory encoded = TxBuilder.encodeLogs(logs);
@@ -341,8 +340,7 @@ contract IngestTest is Test {
         _ingestLogs(logs, 3);
     }
 
-    function test_facilityPlusBorrow_noTorch() public {
-        // Facility has no borrow events; a borrow-shaped log from an unregistered
+    function test_facilityPlusBorrow_noTorch() public {        // Facility has no borrow events; a borrow-shaped log from an unregistered
         // emitter in the same receipt must not torch the genuine repayment.
         EvmV1Decoder.LogEntryTuple[] memory logs = new EvmV1Decoder.LogEntryTuple[](2);
         bytes32[] memory t0 = TxBuilder.topics3(
@@ -360,5 +358,71 @@ contract IngestTest is Test {
         );
         _ingestLogs(logs, 1);
         assertEq(scores.getScore(user), 608);
+    }
+
+    function test_crossCometRefinance_noTorch() public {
+        // Withdraw USDT comet + supply USDC comet, same user: different emitter+coin.
+        EvmV1Decoder.LogEntryTuple[] memory logs = new EvmV1Decoder.LogEntryTuple[](2);
+        bytes32[] memory t0 = TxBuilder.topics3(
+            scores.COMPOUND_SUPPLY(), TxBuilder.addrTopic(address(this)), TxBuilder.addrTopic(user)
+        );
+        logs[0] = TxBuilder.log(scores.COMET_USDC(), t0, abi.encode(200e6));
+        bytes32[] memory t1 = TxBuilder.topics3(
+            scores.COMPOUND_WITHDRAW(), TxBuilder.addrTopic(user), TxBuilder.addrTopic(user)
+        );
+        logs[1] = TxBuilder.log(scores.COMET_USDT(), t1, abi.encode(50e6));
+        _ingestLogs(logs, 3);
+        assertEq(scores.getScore(user), 632);
+        assertEq(scores.getCapacity(user), 200e18);
+    }
+
+    function test_venueBits_eachCountsOnce() public {
+        scores.exposedAddCapacity(user, 10e18, 1);
+        scores.exposedAddCapacity(user, 10e18, 1);
+        assertEq(scores.getVenues(user), 1);
+        scores.exposedAddCapacity(user, 10e18, 2);
+        scores.exposedAddCapacity(user, 10e18, 4);
+        assertEq(scores.getVenues(user), 7);
+        assertEq(uint8(scores.getTier(user)), uint8(OnChainCreditScore.Tier.Bronze)); // stake 10+14 < 100
+    }
+
+    function _ingestAt(uint64 height) internal returns (bytes memory encoded) {
+        EvmV1Decoder.LogEntryTuple[] memory logs = new EvmV1Decoder.LogEntryTuple[](1);
+        logs[0] = _aaveRepayLog(scores.USDC(), user, 500e6);
+        encoded = TxBuilder.encodeLogs(logs);
+        scores.exposedIngest(0, keccak256(abi.encode(height)), 3, height, encoded);
+    }
+
+    function test_tenure_seasonedEarnsBonus() public {
+        scores.registerChainAnchor(3, 1_000_000, 1_700_000_000, 12);
+        _ingestAt(1_000_000); // oldest = T0, stored 632
+        assertEq(scores.getScore(user), 632); // same instant: no tenure yet
+        vm.warp(1_700_000_000 + 31 days);
+        assertEq(scores.getScore(user), 642); // +10 tenure
+    }
+
+    function test_tenure_youngEarnsNothing() public {
+        scores.registerChainAnchor(3, 1_000_000, 1_700_000_000, 12);
+        _ingestAt(1_000_000);
+        vm.warp(1_700_000_000 + 29 days);
+        assertEq(scores.getScore(user), 632);
+    }
+
+    function test_tenure_capsAtMax() public {
+        scores.registerChainAnchor(3, 1_000_000, 1_700_000_000, 12);
+        for (uint256 i; i < 30; ++i) {
+            EvmV1Decoder.LogEntryTuple[] memory logs = new EvmV1Decoder.LogEntryTuple[](1);
+            logs[0] = _aaveRepayLog(scores.USDC(), user, 2_500e6);
+            bytes memory encoded = TxBuilder.encodeLogs(logs);
+            scores.exposedIngest(0, keccak256(abi.encode(9000 + i)), 3, 1_000_000, encoded);
+        }
+        assertEq(scores.getScore(user), 900); // stored capped, bonus cannot exceed it
+        vm.warp(1_700_000_000 + 365 days);
+        assertEq(scores.getScore(user), 900);
+    }
+
+    function test_tenure_uninitializedGetsNothing() public {
+        vm.warp(1_900_000_000);
+        assertEq(scores.getScore(address(0xB0B)), 600);
     }
 }

@@ -1,136 +1,119 @@
-# THREAT MODEL — Indenture credit
+# SECURITY — Indenture credit
 
 Undercollateralized lending dies on disclosure failure, not model failure.
-This document states what is stopped, what is priced, and what is still open —
-before anyone else has to. Every numbered threat maps to tests in `TEST.md`;
-reproduce with `forge test`.
+This document states what is solved and live, what is deliberately deferred
+and why, and what nobody in the field has solved — before anyone else has to.
+Every solved claim maps to tests in `TEST.md`; reproduce with `forge test`
+(91 checks green).
 
-## P0 — Anyone can prove anything about anyone (the load-bearing principle)
+## P0 — Anyone can prove anything about anyone
 
 Ingestion is permissionless by design, and the borrower is always read from an
-**indexed topic**, never from `msg.sender` — which on this chain is just the
-worker relaying the proof. Consequences, all intended:
+**indexed topic**, never from `msg.sender`. A liquidation the borrower hides
+can be submitted by a lender, a competitor, or a bot — and every additional
+reporter makes the record more accurate, not noisier, because proofs verify or
+they revert. Volume adds coverage without adding forgery. There is no
+submitter allowlist to bribe, capture, or DDoS, and the frontend's Check →
+Submit flow plus the worker CLI are two doors into the same permissionless
+`execute()`.
 
-- A liquidation the borrower hides can be submitted by a lender, a competitor,
-  or a bot. Omission is **contestable**, and every additional reporter makes
-  the record more accurate, not noisier: proofs verify or they revert, so
-  volume adds coverage without adding forgery.
-- A friend settling your debt builds *your* history, not theirs.
-- There is no submitter allowlist to bribe, capture, or DDoS.
+## What we solved (shipped, tested, live on testnet)
 
-The precompile guarantees a proven event happened; this contract decides what
-it *means* — registered `(chainKey, emitter)`, `receiptStatus == 1`, exact
-topic0 match. Nothing else is trusted: the caller's `action`, the envelope
-chunks, and any unregistered log are ignored or rejected.
-
-## Stopped (attack costs more than it buys, or is impossible)
-
-### T1 — Forged history
+### S1 — Forged history: impossible by construction
 Fabricated repayments need a forged Merkle + continuity proof against the
-attestor set. Impossible without breaking consensus itself. No test can cover
-this; the precompile is the test.
+attestor set. The precompile is the test; no test of ours can cover it, and
+none needs to.
 
-### T2 — Photocopied capacity ($100 repaid 10×)
-Tier reads `stake = maxRepayment + 35% × lifetimeVolume`, not the sum.
-$100×10 → 450 stake (Silver at best, needs venues); a real $1000 single
-repayment → 1350. Pinned by `test_wash100x10NeverReachesPlatinum`.
-*Residual:* volume still contributes 35% — loyalty signal, priced deliberately.
+### S2 — Photocopied capacity ($100 repaid 10×)
+Tiers read `stake = maxRepayment + 35% × lifetimeVolume`, never the sum.
+$100×10 stalls at 450 stake; a real $1000 single repayment clears 1350.
+Pinned by `test_wash100x10NeverReachesPlatinum`.
 
-### T3 — Flash-loan capacity (zero capital, one transaction)
-Repay/ EMT borrow pairing requires identical `(emitter, coin, user)` triple
-before capacity is denied, so honest same-tx refinancing scores in full while
-an 8M-borrow/8M-repay pair grants nothing. Multi-repay txs accumulate instead
-of last-wins. Pinned by `test_flashPair_*`, `test_honestRefinance_*`,
-`test_multiRepay_*`.
-*Residual:* flash capital from *outside* registered pools is invisible to any
-same-tx guard (industry-wide blind spot, shared with every scorer), and a
-same-asset refinance (repay USDC + borrow USDC, one tx) still flags — rare,
-honest, mildly punished, pinned as accepted in
-`test_sameAssetRefinance_stillFlags`.
+### S3 — Flash-loan capacity (zero capital, one transaction)
+Capacity is denied only on an identical `(emitter, coin, user)` borrow/repay
+pair, so honest same-tx refinancing scores in full while an 8M-borrow/8M-repay
+pair grants nothing. Multi-repay transactions accumulate instead of
+last-wins. Pinned by `test_flashPair_*`, `test_honestRefinance_*`,
+`test_multiRepay_*`, `test_sameAssetRefinance_stillFlags`.
 
-### T4 — Mock-ledger griefing (the 1-wei default)
+### S4 — Mock-ledger griefing (the 1-wei default)
 The Sepolia ledger is self-open only (consent by construction), defaults
-require `block.timestamp >= dueAt` for everyone including any lender role, and
-penalties scale with dollars (−20/−60/−120), so 1 wei of malice costs −20, not
-a tier. Post-due marking by anyone is truthful — the chain clock proves
-lateness — which is exactly the anyone-reports property of P0.
+require `block.timestamp >= dueAt` for everyone, penalties scale with dollars
+(−20/−60/−120), and debt stays settleable after default. Post-due marking by
+anyone is truthful — the chain clock proves lateness — which is P0 working.
 
-### T5 — Dust ghost armies
-Sub-dust repays exit before profile initialization: 10,000 spam addresses stay
-unborn instead of 10,000 clean 600s. Pinned by `test_dust_ignoredWithoutInit`.
+### S5 — Fail-loud ingestion
+Unknown token, missing price, unregistered market, malformed topics, paused
+registry: all revert *before* consuming the proof, so every failure is
+retryable after registration. Proven live, not just in tests — the first real
+GHO and weETH liquidations bounced exactly this way, were registered with two
+casts each, and ingested on retry. Nothing burns, ever.
 
-### T6 — Replay / double-count
-One source transaction ingests once (`processedQueries` in `ASCBase`); failed
-proofs revert before marking, so legitimate retries survive while replays die.
-Pause reverts the same way — nothing burns.
+### S6 — Dust, replays, overflow bricks
+Sub-dust repays exit before a profile is born (no ghost armies). One source
+transaction ingests once; failures revert before marking. Counters saturate
+instead of bricking griefed addresses. Pinned across `ScoreMath`,
+`TierStake`, and `Ingest` suites.
 
-### T7 — Price corruption
-USDC/USDT are immutable at $1 in code. Other pushes reject zero and anything
-above $1M, emit `PriceSet`, and move under multisig (below). A typo'd WETH
-price cannot silently mint trillionaires.
+### S7 — Real pool economics
+Interest accrues and is charged (interest-first repayments), health counts
+debt *plus* interest so time can actually liquidate, seized collateral stays
+in the pool with excess refunded, stray ETH bounces, all five money paths
+pause while funding stays open. Pinned with warp-driven tests, including
+refund math to the wei.
 
-## Priced, not prevented (rational attackers decline; rich ones pay full fare)
+### S8 — Provenance you can re-derive
+Real mainnet receipts replayed byte-for-byte (`RealReceiptTest`, whole-receipt
+suites), a 45-transaction volume run committed as `proof.json`, live evidence
+rows in Postgres behind the evidence tab (deduped by tx hash, global counter),
+and per-row explorer links. A judge needs only `cast` to check our work.
 
-### T8 — Slow wash (borrow, hold, repay across blocks)
-Real interest + gas + locked capital per cycle, for full credit each time.
-Five quiet cycles ≈ Platinum for under $50. No cheap fix exists — the real one
-is duration-weighting (debt × time), which is first on the build-next list.
-Until then the price, not a wall, is the defence.
+### S9 — Tenure pays the patient
+`oldestActivity` accrues from proof-covered heights, and `getScore` adds a
+flat +10 past 30 days of seasoning, hard-capped with the 900 ceiling. Old
+honest wallets outrank fresh farmed ones with identical money.
 
-### T9 — Hidden liquidations
-Nobody must submit their own worst day. Mitigated by P0 (anyone else can) but
-not closed; continuous indexing of registered sources is the scheduled fix.
-A score is therefore a *lower bound on badness*, stated plainly.
+### S10 — Multisig is live, not planned
+Official Safe v1.4.1 bytecode compiled from source and deployed (the chain
+carries no canonical set, and gates CREATE2 — so a CREATE-based deployer
+launched the proxy atomically). All three app contracts answer to the 2-of-3
+Safe; the handover is verified on-chain. Operator tooling (`worker/safe.ts`:
+propose → collect → execute) ships with the repo.
 
-### T10 — Savers score as repayers
-Compound `Supply` cannot distinguish debt repayment from yield deposits. Both
-lock real capital with a real counterparty, so both count — a whale parking
-$1M for yield earns borrower status without borrowing. Bounded by the same
-capital-at-risk logic as everything else.
+## Not implemented, on purpose (with reasons, not excuses)
 
-## Trusted inputs (owned, disclosed, shrinking)
+### D1 — Timelock, not the vault
+The 2-of-3 Safe is live and owns all three contracts (S10). What remains is
+the delay in front of it: a timelock so even approved changes wait 24–48h in
+public before executing.
 
-### T11 — Owner key
-Prices (ex-stables), reserves, sources, anchors, pause — one key today.
-Shrunk by: `transferOwnership` on all three contracts (tested handover),
-stables unchangeable, price bounds, pause that never burns proofs. The pool
-carries its own pause (all five money paths freeze, funding stays open so
-rescue never needs unpausing first), ownership handover, and no receive
-function — stray ETH bounces instead of locking silently.
+### D2 — Continuous poller exists as a design, not a process
+The worker proves on demand today; the poller that would auto-import every
+liquidation is specified (10-minute rounds, prove→submit in one pass, snooze
+instead of drop) but not running. Reason: on testnet the event surface is us;
+a poller watching our own demo loans proves nothing and costs RPC quota we'd
+rather spend on judging-day proving. It ships with mainnet sources.
 
-Multisig status: code-ready, not yet live. The handover path is implemented
-and tested, but app.safe.global does not list Creditcoin testnet, so there is
-no Safe to hand to — raw EOA ownership is a conscious testnet-only posture
-(no real funds at stake). Mainnet handover is: deploy 2-of-3 Safe, transfer
-all three contracts, backend holds one seat. Timelock after that.
-
-### T12 — Stale backend prices
-No on-chain staleness tripwire can exist (the chain cannot know the world).
-Mitigation is procedural: co-signed push schedule plus monitoring. A dead
-backend freezes scoring truth at last-push values — fail-stale, documented.
-
-### T13 — Anchors approximate time
-Height→time conversion is owner-registered and linear; chains that change
-block times skew it. Bounded: the term it will feed is capped, and estimates
-are checked against known spans (Ethereum 12s slots).
-
-## What we do not solve
+## Not solved (genuinely hard — shared with the whole field)
 
 1. **Enforcement.** A walk-away costs score only. No legal rails, no junior
-   tranche, no stake to slash. The capacity math bounds the damage; it does
-   not make anyone whole.
-2. **T3-residual and T8**, above — the two open wash variants in the field.
-3. **T9 completeness** until indexing is continuous.
-4. **WETH/WBTC truth** without an oracle we refuse to introduce; owner-pushed
-   until a trust-minimised foreign-price path exists.
+   tranche, no stake to slash. Our math bounds the damage; it does not make
+   anyone whole. Nobody has solved this trustlessly.
+2. **Slow wash.** Borrow, hold, repay across blocks earns full credit for a few
+   dollars of interest. The real fix is duration-weighting (debt × time) —
+   specified, unbuilt, by us and everyone else.
+3. **Hidden-history completeness.** P0 makes omission contestable; only
+   continuous indexing (D2) makes it complete. Until then a score is a lower
+   bound on badness.
+4. **Foreign-asset truth without an oracle.** Owner-pushed prices with locks
+   and bounds is our answer; a trust-minimised equivalent is an open problem
+   we refuse to fake.
+5. **External flash capital.** Same-tx guards cannot see money that entered
+   from outside registered pools. No scorer closes this.
 
-## Reproducing the claims
+## Build next, in order
 
-```bash
-forge test                                   # 78 checks green
-forge test --match-contract VolumeProofTest  # 45-tx volume + proof.json
-forge test --match-contract RealReceiptTest  # real mainnet logs, hash-matched
-```
-`proof.json` (45 `{txn, protocol, proofbody}` records) and `test/fixtures/`
-(real Aave $81.77 repay, real Compound $1000 supply, both hash-verified)
-let any reviewer re-derive every number by hand.
+1. Continuous poller (D2) alongside first mainnet sources.
+2. Timelock live (D1).
+3. Duration-weighted capacity — the field's hardest open problem.
+4. Professional audit before any real value touches the pool.

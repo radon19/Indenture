@@ -61,13 +61,13 @@ contract TierStakeTest is Test {
     }
 
     function test_penalty_brackets() public {
-        scores.exposedIncrease(user, 1_000e18); // 600 -> 650
+        scores.exposedIncrease(user, 1_000e18); // 600 -> 632
         scores.exposedDecrease(user, 50e18); // small: -20
-        assertEq(scores.getScore(user), 630);
+        assertEq(scores.getScore(user), 612);
         scores.exposedDecrease(user, 500e18); // mid: -60
-        assertEq(scores.getScore(user), 570);
+        assertEq(scores.getScore(user), 552);
         scores.exposedDecrease(user, 5000e18); // large: -120
-        assertEq(scores.getScore(user), 450);
+        assertEq(scores.getScore(user), 432);
     }
 
     function test_penalty_floorsAtMin() public {
