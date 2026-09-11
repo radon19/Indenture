@@ -10,6 +10,7 @@ const NAV = [
   { href: "/score", label: "Score", hot: true },
   { href: "/evidence", label: "Evidence", hot: false },
   { href: "/docs", label: "Docs", hot: false },
+  { href: "/security", label: "Security", hot: false },
 ];
 
 function Header() {
