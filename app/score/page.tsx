@@ -224,6 +224,7 @@ export default function ScorePage() {
         borrower: checked.summary.borrower,
         amountRaw: checked.summary.amountRaw,
         blockNumber: checked.summary.blockNumber,
+        execHash,
       }),
     }).catch(() => {
       recordedRef.current = null; // let a later render retry

@@ -61,7 +61,8 @@ async function sign() {
   const wallet = new ethers.Wallet(key);
   const flat = await wallet.signMessage(ethers.getBytes(p.hash));
   const sig = ethers.Signature.from(flat);
-  const adjusted = ethers.Signature.from({ r: sig.r, s: sig.s, v: sig.v + 4 }).serialized;
+  // Safe wants eth_sign type: v 27/28 shifted to 31/32 so it hashes with the prefix.
+  const adjusted = sig.r + sig.s.slice(2) + (Number(sig.v) + 4).toString(16).padStart(2, "0");
   if (p.signatures.some((s) => s.signer.toLowerCase() === wallet.address.toLowerCase())) {
     throw new Error("already signed by this key");
   }
@@ -79,6 +80,13 @@ async function execute() {
   const sorted = [...p.signatures].sort((a, b) =>
     a.signer.toLowerCase() < b.signer.toLowerCase() ? -1 : 1,
   );
+  const cRead = safe();
+  const liveNonce: bigint = await cRead.nonce();
+  if (BigInt(p.nonce) !== liveNonce) {
+    throw new Error(
+      `stale proposal: signed for nonce ${p.nonce} but Safe is at ${liveNonce} — re-propose, re-sign, then execute`,
+    );
+  }
   const sigs = "0x" + sorted.map((s) => s.sig.slice(2)).join("");
   const key = need(keyName);
   const c = safe().connect(new ethers.Wallet(key, new ethers.JsonRpcProvider(need("CREDITCOIN_RPC_URL"))));

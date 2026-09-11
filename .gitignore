@@ -55,3 +55,5 @@ dist/
 
 /.safebuild/cache
 /.safebuild/out
+# one-shot secrets, never commit
+worker/temp.ts

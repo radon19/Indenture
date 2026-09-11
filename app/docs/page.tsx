@@ -1,5 +1,5 @@
 import { Card, SectionHeading } from "../components/ui";
-import { ADDRESSES, SCORE_BRACKETS, PENALTY_BRACKETS } from "../lib/site";
+import { ADDRESSES, SCORE_BRACKETS, PENALTY_BRACKETS, SUPPORTED_TOKENS } from "../lib/site";
 
 function Sig({ children }: { children: string }) {
   return (
@@ -103,6 +103,41 @@ export default function DocsPage() {
           <Fn name="addCollateral() payable / withdrawCollateral(amount)" desc="Top up anytime; withdraw only while the tier requirement still holds." />
           <Fn name="interestDue(user) / totalOwed(user) / getPosition(user)" desc="Live debt math for dashboards: banked + pending interest, full close price, raw position." />
           <Fn name="liquidate(borrower)" desc="Permissionless past the health line. Seized covers debt to the pool; excess refunds." />
+        </Card>
+      </section>
+
+      {/* LEDGER */}
+      <section className="mt-10">
+        <h2 className="font-mono text-[12px] uppercase tracking-[0.18em] text-gold-deep">
+          Supported tokens · {SUPPORTED_TOKENS.length} live
+        </h2>
+        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-muted">
+          Every token below was read back on-chain after onboarding. Anything
+          else reverts loudly instead of scoring wrong — that is the policy.
+        </p>
+        <Card className="mt-3 overflow-hidden">
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-line bg-parchment font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+                <th className="px-4 py-2.5 font-medium">Token</th>
+                <th className="px-4 py-2.5 font-medium">Address</th>
+                <th className="px-4 py-2.5 font-medium">Decimals</th>
+                <th className="px-4 py-2.5 font-medium">Price</th>
+              </tr>
+            </thead>
+            <tbody className="tabular font-mono">
+              {SUPPORTED_TOKENS.map((t) => (
+                <tr key={t.symbol} className="border-b border-line/60 last:border-0">
+                  <td className="px-4 py-2.5 font-semibold">{t.symbol}</td>
+                  <td className="px-4 py-2.5 text-muted" title={t.address}>
+                    {t.address.slice(0, 10)}…{t.address.slice(-6)}
+                  </td>
+                  <td className="px-4 py-2.5">{t.decimals}</td>
+                  <td className="px-4 py-2.5 text-muted">{t.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </Card>
       </section>
 

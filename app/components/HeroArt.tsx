@@ -59,7 +59,7 @@ export default function HeroArt({ className = "" }: { className?: string }) {
       {/* entries */}
       {[
         { y: 252, pts: "+32", where: "Aave · $500 USDC", w: 150, c: "#465E54" },
-        { y: 312, pts: "+50", where: "Compound · $1,000 USDC", w: 210, c: "#465E54" },
+        { y: 312, pts: "+50", where: "Compound · $2,500 USDC", w: 210, c: "#465E54" },
         { y: 372, pts: "−20", where: "Default · $12 USDC", w: 60, c: "#9A6B3F" },
       ].map((r) => (
         <g key={r.y}>

@@ -75,7 +75,7 @@ export default function SecurityPage() {
         </h2>
         <Card className="mt-3 bg-ink p-5 text-paper">
           <code className="block font-mono text-[13px] leading-loose">
-            forge test <span className="text-paper/50"># 91 checks green</span>
+            forge test <span className="text-paper/50"># 112 checks green</span>
             <br />
             forge test --match-contract VolumeProofTest
             <br />

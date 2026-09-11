@@ -37,6 +37,27 @@ export const PROTOCOL_LABEL: Record<Protocol, string> = {
   compound: "Compound v3",
 };
 
+export type SupportedToken = {
+  symbol: string;
+  address: string;
+  decimals: number;
+  note: string;
+};
+
+/** On-chain verified set — every entry read back from tokenDecimals after onboarding. */
+export const SUPPORTED_TOKENS: SupportedToken[] = [
+  { symbol: "USDC", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6, note: "Fixed $1" },
+  { symbol: "USDT", address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", decimals: 6, note: "Fixed $1" },
+  { symbol: "DAI", address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", decimals: 18, note: "$1" },
+  { symbol: "WETH", address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18, note: "Owner-priced" },
+  { symbol: "WBTC", address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", decimals: 8, note: "Owner-priced" },
+  { symbol: "cbBTC", address: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", decimals: 8, note: "Owner-priced" },
+  { symbol: "cbETH", address: "0xbe9895146f7af43049ca1c1ae358b0541ea49704", decimals: 18, note: "Owner-priced" },
+  { symbol: "rETH", address: "0xae78736cd615f374d3085123a210448e74fc6393", decimals: 18, note: "Owner-priced" },
+  { symbol: "USDe", address: "0x4c9edd5852cd905f086c759e8383e09bff1e68b3", decimals: 18, note: "$1" },
+  { symbol: "LINK", address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", decimals: 18, note: "Owner-priced" },
+];
+
 /** proof.json record shape (contracts/proof.json). */
 export type ProofRecord = {
   txn: string;

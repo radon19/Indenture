@@ -1,6 +1,39 @@
 import { NextResponse } from "next/server";
+import { createPublicClient, http } from "viem";
+import { creditCoin3Testnet } from "viem/chains";
 import { db } from "@/app/lib/db";
 import { recordProof } from "@/app/lib/evidence";
+
+const SCORES = "0xFA19b4DDCEA765Ce8662ec9ea15438Adce44E237";
+
+// In-memory per-IP throttle. Persistence would need the DB this guards.
+const hits = new Map<string, number[]>();
+
+function throttled(ip: string): boolean {
+  const now = Date.now();
+  const arr = (hits.get(ip) ?? []).filter((t) => now - t < 60_000);
+  arr.push(now);
+  hits.set(ip, arr);
+  return arr.length > 20;
+}
+
+/**
+ * Evidence is write-verified, not writer-authenticated: a browser cannot hold
+ * a secret, so instead the row must point at a real, successful `execute()`
+ * on-chain. Forging a row costs a real ingest — at which point it is true.
+ */
+async function ingestConfirmed(execHash: string): Promise<boolean> {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(execHash)) return false;
+  const rpc = process.env.CREDITCOIN_RPC_URL;
+  if (!rpc) return false;
+  try {
+    const client = createPublicClient({ chain: creditCoin3Testnet, transport: http(rpc) });
+    const rec = await client.getTransactionReceipt({ hash: execHash as `0x${string}` });
+    return rec.status === "success" && rec.to?.toLowerCase() === SCORES.toLowerCase();
+  } catch {
+    return false;
+  }
+}
 
 /** GET /api/evidence?protocol=aave|spark|compound&kind=repay|liquidation */
 export async function GET(req: Request) {
@@ -49,8 +82,12 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/evidence — called by the frontend after a successful ingest. */
+/** POST /api/evidence — filed by the frontend after a confirmed ingest. */
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  if (throttled(ip)) {
+    return NextResponse.json({ ok: false, error: "rate limited" }, { status: 429 });
+  }
   let body: any;
   try {
     body = await req.json();
@@ -66,6 +103,18 @@ export async function POST(req: Request) {
   }
   const blockNumber =
     typeof body.blockNumber === "number" && Number.isSafeInteger(body.blockNumber) ? body.blockNumber : null;
+  if (typeof body.execHash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(body.execHash)) {
+    return NextResponse.json(
+      { ok: false, error: "outdated app build — hard-refresh and retry" },
+      { status: 400 },
+    );
+  }
+  if (typeof body.execHash !== "string" || !(await ingestConfirmed(body.execHash))) {
+    return NextResponse.json(
+      { ok: false, error: "no confirmed on-chain ingest for this record" },
+      { status: 422 },
+    );
+  }
   try {
     const result = await recordProof({
       txHash,

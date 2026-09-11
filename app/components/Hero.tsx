@@ -81,7 +81,7 @@ function Hero() {
               value={totalProved == null ? "—" : String(totalProved)}
               sub="and counting"
             />
-            <Stat label="Test checks" value="91" sub="all green" />
+            <Stat label="Test checks" value="112" sub="all green" />
           </dl>
           </div>
           <div className="mx-auto w-full max-w-110">
@@ -160,7 +160,7 @@ function Hero() {
           <SectionHeading
             kicker="Why trust it"
             title="Every claim has a test that fails if you break it."
-            lede="91 checks green. Real mainnet receipts. A threat model that names what is still unsolved."
+            lede="112 checks green. Real mainnet receipts. A threat model that names what is still unsolved."
           />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <Card className="p-6">

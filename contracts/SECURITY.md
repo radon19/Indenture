@@ -4,7 +4,7 @@ Undercollateralized lending dies on disclosure failure, not model failure.
 This document states what is solved and live, what is deliberately deferred
 and why, and what nobody in the field has solved — before anyone else has to.
 Every solved claim maps to tests in `TEST.md`; reproduce with `forge test`
-(91 checks green).
+(112 checks green).
 
 ## P0 — Anyone can prove anything about anyone
 
