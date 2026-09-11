@@ -49,6 +49,14 @@ contract ScoreMathTest is Test {
         assertEq(ScoreCalculateLib.normalise(5e18, 18), 5e18); // WETH
     }
 
+    function testFuzz_normaliseRoundTrip(uint96 raw, uint8 decimals) public pure {
+        vm.assume(decimals == 6 || decimals == 8 || decimals == 18);
+        vm.assume(raw < 1e12); // keeps 18-dec result in range
+        uint256 normed = ScoreCalculateLib.normalise(raw, decimals);
+        uint256 back = normed / (10 ** (18 - decimals));
+        assertEq(back, raw);
+    }
+
     function testFuzz_pointsNeverExceed50(uint256 amount) public pure {
         assertLe(ScoreCalculateLib.getPoints(amount), 50);
     }

@@ -39,9 +39,11 @@ export function cleanError(e: unknown): string {
       ? anyE.shortMessage
       : typeof anyE?.reason === "string"
         ? anyE.reason
-        : e instanceof Error
-          ? e.message
-          : String(e);
+        : typeof anyE?.message === "string"
+          ? anyE.message
+          : e instanceof Error
+            ? e.message
+            : String(e);
   const first = raw.split("\n")[0].replace(/\s+/g, " ").trim();
   if (/invalid argument|invalid.*hash|hex string/i.test(first)) {
     return "that doesn't look like a transaction hash (0x followed by 64 hex characters)";

@@ -108,12 +108,51 @@ contract TierStakeTest is Test {
         assertEq(scores.getMaxRepayment(user), 500e18);
         assertEq(scores.getCapacity(user), 600e18);
     }
-
     function test_zeroOrVenueLessAddsNothing() public {
         scores.exposedAddCapacity(user, 0, AAVE);
         scores.exposedAddCapacity(user, 500e18, 0);
         assertEq(scores.getCapacity(user), 0);
         assertEq(uint8(scores.getTier(user)), uint8(OnChainCreditScore.Tier.Bronze));
+    }
+
+    function test_previewCredit_fullTuple() public {
+        scores.exposedAddCapacity(user, 500e18, AAVE);
+        scores.exposedAddCapacity(user, 500e18, SPARK);
+        (
+            uint16 score,
+            uint256 capacity18,
+            uint256 maxRepayment18,
+            uint64 oldestActivity,
+            uint8 venues,
+            uint16 venueCount,
+            uint16 defaults,
+            OnChainCreditScore.Tier tier,
+            uint32 collateralBps,
+            uint16 collateralPercent,
+            uint16 interestBps,
+            uint16 interestPercent
+        ) = scores.previewCredit(user);
+        assertEq(capacity18, 1000e18);
+        assertEq(maxRepayment18, 500e18);
+        assertEq(oldestActivity, 0); // no ingest yet, only direct adds
+        assertEq(venues, 3);
+        assertEq(venueCount, 2);
+        assertEq(defaults, 0);
+        assertEq(uint8(tier), uint8(OnChainCreditScore.Tier.Gold));
+        assertEq(collateralBps, 11_000);
+        assertEq(collateralPercent, 110);
+        assertEq(interestBps, 800);
+        assertEq(interestPercent, 8);
+        assertEq(score, 600); // capacity alone moves no points
+    }
+
+    function test_percentViews() public {
+        assertEq(scores.getInterestPercent(user), 18);
+    }
+
+    function test_quoteMaxBorrow_math() public {
+        // covered separately against the pool in integration; registry-side sanity:
+        assertEq(scores.getCollateralBps(user), 15_000);
     }
 
     function testFuzz_stakeMonotonicInMax(uint256 a, uint256 b) public {

@@ -110,6 +110,7 @@ export default function ScorePage() {
   // silently), so every terminal state is derived AND watchdog-timed.
   const [timedOut, setTimedOut] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [simSlow, setSimSlow] = useState(false);
   const recordedRef = useRef<string | null>(null);
   const active = execPending || execMining;
   useEffect(() => {
@@ -188,7 +189,7 @@ export default function ScorePage() {
 
   // Dry-run the exact calldata on every checked proof: doomed txs surface here,
   // with names, instead of dying silently inside the wallet.
-  const { error: simError, isLoading: simLoading } = useSimulateContract({
+  const { error: simError, isLoading: simLoading, data: simData } = useSimulateContract({
     address: ADDRESSES.creditcoinTestnet.creditScore,
     abi: creditScoreAbi,
     functionName: "execute",
@@ -230,7 +231,15 @@ export default function ScorePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [execDone, execHash]);
 
-  // Simulation verdict drives the UI directly: no wallet needed to know.
+  // Silence breaker: 45s with neither verdict nor error means the RPC is
+  // hanging, not thinking. Stop blocking and say so.
+  useEffect(() => {
+    setSimSlow(false);
+    if (!checked || simError || simData !== undefined) return;
+    const t = setTimeout(() => setSimSlow(true), 45_000);
+    return () => clearTimeout(t);
+  }, [checked, simError, simData]);
+
   const simFailed = !!simError;
   const simReason = simFailed ? simError.message.split("\n").map((l) => l.trim()).filter(Boolean)[0] ?? "" : "";
   const simRecorded = simFailed && /alread.*process/i.test(simError.message);
@@ -294,7 +303,7 @@ export default function ScorePage() {
                 {credit.tier ? <TierBadge tier={credit.tier} /> : null}
               </div>
               <div className="grid items-center gap-8 p-6 sm:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] sm:p-8">
-                <div className="mx-auto w-full max-w-[240px] rounded-xl border border-paper/15 bg-ink/60 p-6 text-center">
+                <div className="mx-auto w-full max-w-60 rounded-xl border border-paper/15 bg-ink/60 p-6 text-center">
                   <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-paper/45">Score</p>
                   <p className="tabular mt-1 font-mono text-2xl font-semibold text-paper">{credit.score}</p>
                   <p className="mt-1 font-mono text-[12px] text-paper/45">/ 900</p>
@@ -423,7 +432,7 @@ export default function ScorePage() {
                         req too large, can't sign
                       </p>
                     ) : simFailed && !execDone ? (
-                      <p className="max-w-[220px] font-mono text-[12px] text-muted">
+                      <p className="max-w-55 font-mono text-[12px] text-muted">
                         {simReason.slice(0, 90) || "simulation failed"}
                       </p>
                     ) : null}
@@ -437,19 +446,26 @@ export default function ScorePage() {
                   </p>
                 ) : (
                   <Btn
-                    disabled={!address || submitting || simLoading}
+                    disabled={!address || submitting || (simLoading && !simSlow)}
                     onClick={handleSubmit}
                   >
                     {!address
                       ? "Connect wallet to submit"
-                      : simLoading
+                      : simLoading && !simSlow
                         ? "Simulating…"
                         : submitting
                           ? "Submitting…"
-                          : "Submit on-chain"}
+                          : simSlow && !simFailed
+                            ? "Submit anyway"
+                            : "Submit on-chain"}
                   </Btn>
                 )
                 )}
+                {simSlow && !simFailed && !execDone ? (
+                  <p className="mt-2 max-w-md font-mono text-[12px] text-muted">
+                    no answer in 45s — the chain is slow, not necessarily wrong. Submitting skips the safety check at your own gas risk.
+                  </p>
+                ) : null}
                 {execAlreadyRecorded || execDone || simRecorded ? (
                   <div className="rounded-lg border border-line bg-paper p-4">
                     <p className="text-[15px] font-semibold tracking-tight">
