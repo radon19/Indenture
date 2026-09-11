@@ -81,6 +81,17 @@ const SIGS = {
 
 const addr = (t: string) => ethers.getAddress("0x" + t.slice(-40));
 
+const AAVE_V3_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
+const SPARK_POOL = "0xC13e21B648A5Ee794902342038FF3aDAB66BE987";
+
+/** Same events as Aave by design (Spark is a fork) — emitter tells them apart. */
+function aaveLikeProtocol(emitter: string): "aave" | "spark" | "unknown" {
+  const lc = emitter.toLowerCase();
+  if (lc === AAVE_V3_POOL.toLowerCase()) return "aave";
+  if (lc === SPARK_POOL.toLowerCase()) return "spark";
+  return "unknown";
+}
+
 /** Best-effort read of what a receipt proves. Contract remains the judge. */
 export function summarizeLogs(
   logs: { address: string; topics: string[]; data: string }[],
@@ -92,13 +103,15 @@ export function summarizeLogs(
     const sig = log.topics[0]?.toLowerCase();
     const coder = ethers.AbiCoder.defaultAbiCoder();
     try {
-      if (sig === SIGS.aaveRepay.toLowerCase()) {
-        const [amount] = coder.decode(["uint256", "bool"], log.data) as unknown as [bigint, boolean];
-        return { protocol: "aave", kind: "repay", borrower: addr(log.topics[2]), amountRaw: amount.toString() };
-      }
-      if (sig === SIGS.aaveLiq.toLowerCase()) {
+      if (sig === SIGS.aaveRepay.toLowerCase() || sig === SIGS.aaveLiq.toLowerCase()) {
+        const protocol = aaveLikeProtocol(log.address);
+        if (protocol === "unknown") continue;
+        if (sig === SIGS.aaveRepay.toLowerCase()) {
+          const [amount] = coder.decode(["uint256", "bool"], log.data) as unknown as [bigint, boolean];
+          return { protocol, kind: "repay", borrower: addr(log.topics[2]), amountRaw: amount.toString() };
+        }
         const [cover] = coder.decode(["uint256", "uint256"], log.data) as unknown as [bigint, bigint];
-        return { protocol: "aave", kind: "liquidation", borrower: addr(log.topics[3]), amountRaw: cover.toString() };
+        return { protocol, kind: "liquidation", borrower: addr(log.topics[3]), amountRaw: cover.toString() };
       }
       if (sig === SIGS.compoundSupply.toLowerCase()) {
         const [amount] = coder.decode(["uint256"], log.data) as unknown as [bigint];

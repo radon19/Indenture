@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { cleanError, fetchReceipt, proveTx, summarizeLogs } from "./prove";
+import { timingSafeEqual } from "node:crypto";
 
 const PORT = Number(process.env.WORKER_PORT ?? 3001);
 const COMET_USDC = "0xc3d688B66703497DAA19211EEdff47f25384cdc3";
@@ -29,6 +30,19 @@ function fail(status: number, error: string) {
   return new Response(JSON.stringify({ ok: false as const, error }), { status, headers: cors });
 }
 
+/** Shared-secret gate. Browser never holds this — only our Next.js server does. */
+function authorized(req: Request): boolean {
+  const expected = process.env.WORKER_AUTH_TOKEN;
+  if (!expected) {
+    console.warn("WORKER_AUTH_TOKEN unset — accepting unauthenticated calls (dev only)");
+    return true;
+  }
+  const got = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const a = Buffer.from(got);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 Bun.serve({
   port: PORT,
   async fetch(req) {
@@ -42,6 +56,7 @@ Bun.serve({
     }
     const ip = req.headers.get("x-forwarded-for") ?? "local";
     if (throttled(ip)) return fail(429, "rate limited — retry in a minute");
+    if (!authorized(req)) return fail(401, "unauthorized worker call");
 
     let body: any;
     try {

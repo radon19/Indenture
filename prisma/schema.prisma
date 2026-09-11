@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// One row per proven source transaction. txHash is the dedupe key:
+// re-proving the same hash updates the row, it never double-counts.
+model Evidence {
+  id          Int      @id @default(autoincrement())
+  txHash      String   @unique
+  chainKey    Int
+  protocol    String
+  kind        String
+  borrower    String?
+  amountRaw   String?
+  blockNumber BigInt?
+  createdAt   DateTime @default(now())
+
+  @@index([protocol, kind])
+}
+
+// Singleton row (id = 1): every proven call ever, repays and liquidations alike.
+model Counter {
+  id          Int @id @default(1)
+  totalProved Int @default(0)
+}
