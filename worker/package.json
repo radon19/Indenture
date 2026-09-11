@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "prove": "bun worker.ts",
-    "api": "bun api.ts"
+    "api": "bun api.ts",
+    "start": "bun api.ts"
   },
   "dependencies": {
     "@gluwa/usc-sdk": "^0.18.0",
