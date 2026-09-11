@@ -2,7 +2,7 @@ import "dotenv/config";
 import { cleanError, fetchReceipt, proveTx, summarizeLogs } from "./prove";
 import { timingSafeEqual } from "node:crypto";
 
-const PORT = Number(process.env.WORKER_PORT ?? 3001);
+const PORT = Number(process.env.PORT ?? process.env.WORKER_PORT ?? 3001);
 const COMET_USDC = "0xc3d688B66703497DAA19211EEdff47f25384cdc3";
 const COMET_USDT = "0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840";
 
