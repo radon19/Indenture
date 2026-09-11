@@ -4,82 +4,30 @@ type Props = {
 };
 
 /**
- * Indenture mark — ledger "I" cut into 3 installment bars,
- * gold coin badge = one installment paid.
- * Master vector lives in ./indenture-logo.svg; this component
- * mirrors it for crisp inline use (header, buttons, empty states).
+ * Indenture mark, flat — mirrors /public/indentureLogo.svg.
+ * Cream field, ink frame, gold zig-zag. No gradients.
  */
 export function IndentureLogo({ size = 32, className }: Props) {
-  return (<>
+  return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       role="img"
       aria-label="Indenture logo"
       className={className}
     >
-      <defs>
-        <linearGradient
-          id="indenture-bg"
-          x1="0"
-          y1="0"
-          x2="64"
-          y2="64"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0" stopColor="#064e3b" />
-          <stop offset="0.55" stopColor="#047857" />
-          <stop offset="1" stopColor="#0d9488" />
-        </linearGradient>
-        <linearGradient
-          id="indenture-sheen"
-          x1="0"
-          y1="0"
-          x2="0"
-          y2="64"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.22" />
-          <stop offset="0.35" stopColor="#ffffff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="15" fill="url(#indenture-bg)" />
-      <rect width="64" height="64" rx="15" fill="url(#indenture-sheen)" />
-      <rect
-        x="1"
-        y="1"
-        width="62"
-        height="62"
-        rx="14"
-        fill="none"
-        stroke="#ffffff"
-        strokeOpacity="0.18"
-        strokeWidth="1.5"
-      />
-      <rect x="14" y="15" width="30" height="8" rx="4" fill="#ffffff" opacity="0.96" />
-      <rect x="14" y="27.5" width="20" height="8" rx="4" fill="#ffffff" opacity="0.68" />
-      <rect x="14" y="40" width="30" height="8" rx="4" fill="#ffffff" opacity="0.96" />
-      <circle cx="44" cy="31.5" r="9.5" fill="#fbbf24" />
-      <circle
-        cx="44"
-        cy="31.5"
-        r="9.5"
-        fill="none"
-        stroke="#064e3b"
-        strokeWidth="2"
-      />
+      <rect width="256" height="256" rx="12" fill="#F4EFE5" />
+      <rect x="48" y="56" width="160" height="145" rx="8" fill="#151311" />
       <path
-        d="M39.5 31.7l3.2 3.2 5.4-6.2"
+        d="M128 56 L141 70 L115 99 L141 128 L115 157 L141 186 L128 201"
         fill="none"
-        stroke="#064e3b"
-        strokeWidth="2.6"
+        stroke="#B3872A"
+        strokeWidth="8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
-    
-</>
   );
 }
 
