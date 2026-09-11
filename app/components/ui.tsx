@@ -52,7 +52,7 @@ export function SectionHeading({
         {kicker}
       </p>
       <h2
-        className={`mt-2 text-4xl font-semibold tracking-tight sm:text-[2.75rem] sm:leading-[1.1] ${
+        className={`mt-2 font-display text-4xl font-semibold tracking-tight sm:text-[2.75rem] sm:leading-[1.1] ${
           dark ? "text-paper" : "text-ink"
         }`}
       >

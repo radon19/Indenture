@@ -14,7 +14,7 @@ export default function Footer() {
           on Aave, Spark, and Compound — settled on Creditcoin.
         </p>
         <nav className="ml-auto flex gap-5 text-[13px] text-paper/70" aria-label="Footer">
-          <Link className="hover:text-paper" href="/playground">Playground</Link>
+          <Link className="hover:text-paper" href="/borrow">Borrow</Link>
           <Link className="hover:text-paper" href="/score">Score</Link>
           <Link className="hover:text-paper" href="/evidence">Evidence</Link>
           <Link className="hover:text-paper" href="/docs">Docs</Link>
