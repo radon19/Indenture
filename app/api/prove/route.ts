@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 /** Same-origin gate: browser calls here, server calls the worker with the secret. */
 export async function POST(req: Request) {
-  let body: any;
+  let body: Record<string, unknown>;
   try {
-    body = await req.json();
+    body = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ ok: false, error: "invalid JSON" }, { status: 400 });
   }

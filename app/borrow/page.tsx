@@ -1,26 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Card, SectionHeading, Field, TextInput, Btn, TierBadge, EmptyState } from "../components/ui";
+import { Card, SectionHeading, TierBadge } from "../components/ui";
 import NetworkGate from "../components/NetworkGate";
+import BorrowForm from "./BorrowForm";
+import PositionCard from "./PositionCard";
 import { TIERS } from "../lib/site";
 import { ADDRESSES } from "../lib/site";
-import { loanPoolAbi } from "../lib/abi";
+import { loanPoolAbi, mockUSDCAbi } from "../lib/abi";
 import { useBorrowQuote, usePosition, useCreditScore } from "../lib/stubs";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { creditCoin3Testnet } from "wagmi/chains";
-import { formatUnits, parseEther, parseUnits } from "viem";
-import { mockUSDCAbi } from "../lib/abi";
+import { parseEther, parseUnits } from "viem";
 
 export default function BorrowPage() {
-  const { address, isConnected } =useAccount();
+  const { address, isConnected } = useAccount();
   const [debt, setDebt] = useState("100");
   const [locked, setLocked] = useState("150");
   const [repayAmount, setRepayAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const { data: credit, isLoading: scoreLoading } = useCreditScore(isConnected ? address : undefined);
+  const liveTier = credit.tier;
   const quote = useBorrowQuote(isConnected ? address : undefined, debt, locked);
   const position = usePosition(isConnected ? address : undefined);
 
@@ -49,9 +51,8 @@ export default function BorrowPage() {
   const needsApproval =
     repayWei !== null && repayWei > BigInt(0) && (allowance === undefined || (allowance as bigint) < repayWei);
   const { data: approveHash, isPending: approvePending, writeContract: approve } = useWriteContract();
-  const { isLoading: approveMining, isSuccess: approveDone } = useWaitForTransactionReceipt({
-    hash: approveHash,
-  });
+  const { isLoading: approveMining } = useWaitForTransactionReceipt({ hash: approveHash });
+  const approveDone = !!approveHash && !approvePending && !approveMining;
   const { data: repayHash, error: repayError, isPending: repayPending, writeContract: repay } =
     useWriteContract();
   const { isLoading: repayMining, isSuccess: repayDone } = useWaitForTransactionReceipt({
@@ -79,29 +80,111 @@ export default function BorrowPage() {
     chainId: creditCoin3Testnet.id,
     query: { enabled: !!address },
   });
-  const explorerTx = (hash?: `0x${string}`) =>
-    `${creditCoin3Testnet.blockExplorers.default.url}/tx/${hash ?? ""}`;
+  const explorerTx = (hash: `0x${string}`) =>
+    `${creditCoin3Testnet.blockExplorers.default.url}/tx/${hash}`;
 
+  function handleBorrow() {
+    try {
+      borrow({
+        address: ADDRESSES.creditcoinTestnet.loanPool,
+        abi: loanPoolAbi,
+        functionName: "borrow",
+        args: [parseUnits(debt.trim(), 6)],
+        value: parseEther(locked.trim()),
+      });
+    } catch {
+      /* invalid input stays disabled via quote.ready */
+    }
+  }
+
+  function handleApprove() {
+    if (repayWei === null) return;
+    approve({
+      address: ADDRESSES.creditcoinTestnet.mockUSDC,
+      abi: mockUSDCAbi,
+      functionName: "approve",
+      args: [ADDRESSES.creditcoinTestnet.loanPool, repayWei],
+    });
+  }
+
+  function handleRepay() {
+    if (repayWei === null) return;
+    repay({
+      address: ADDRESSES.creditcoinTestnet.loanPool,
+      abi: loanPoolAbi,
+      functionName: "repay",
+      args: [repayWei],
+    });
+  }
+
+  function handleWithdraw() {
+    if (withdrawWei === null) return;
+    withdraw({
+      address: ADDRESSES.creditcoinTestnet.loanPool,
+      abi: loanPoolAbi,
+      functionName: "withdrawCollateral",
+      args: [withdrawWei],
+    });
+  }
+
+  // Post-success cleanup lives in events, not effects: refetching is the
+  // effect's sync-with-external-system job, input resets are event logic.
+  const onBorrowSettled = useEffectEvent(() => {
+    pollRefetch(position.refetch, refetchOwed);
+  });
   useEffect(() => {
-    if (borrowDone) position.refetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (borrowDone) onBorrowSettled();
   }, [borrowDone]);
 
+  const onApproveSettled = useEffectEvent(() => {
+    refetchAllowance();
+  });
   useEffect(() => {
-    if (approveDone) refetchAllowance();
-    if (repayDone) {
-      position.refetch();
-      refetchAllowance();
-      refetchOwed();
-      setRepayAmount("");
+    if (approveDone) onApproveSettled();
+  }, [approveDone]);
+
+  // Post-success input resets: the canonical "adjust state when an async
+  // operation completes" case (React docs' own useEffectEvent example).
+  // Refetches poll because indexers lag receipts by seconds.
+  const pollRefetch = useEffectEvent((...fns: (() => void)[]) => {
+    fns.forEach((fn) => fn());
+    [2000, 5000, 10000].forEach((ms) =>
+      setTimeout(() => fns.forEach((fn) => fn()), ms),
+    );
+  });
+  const onRepaySettled = useEffectEvent(() => {
+    pollRefetch(position.refetch, refetchAllowance, refetchOwed);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRepayAmount("");
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (repayDone) onRepaySettled();
+  }, [repayDone]);
+
+  const onWithdrawSettled = useEffectEvent(() => {
+    pollRefetch(position.refetch, refetchOwed);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWithdrawAmount("");
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (withdrawDone) onWithdrawSettled();
+  }, [withdrawDone]);
+
+  // Sticky-upward collateral: raising the borrow auto-fills the lock to the
+  // requirement; lowering never takes collateral away.
+  const bumpCollateral = useEffectEvent((need: number) => {
+    const cur = Number.parseFloat(locked);
+    if (!Number.isFinite(cur) || cur < need) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLocked(String(need));
     }
-    if (withdrawDone) {
-      position.refetch();
-      refetchOwed();
-      setWithdrawAmount("");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [approveDone, repayDone, withdrawDone]);
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (quote.requiredCtC != null) bumpCollateral(quote.requiredCtC);
+  }, [quote.requiredCtC]);
 
   if (!isConnected) {
     return (
@@ -172,218 +255,48 @@ export default function BorrowPage() {
         </Card>
       ) : (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          {/* BORROW */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold tracking-tight">New loan</h3>
-              {credit.tier ? <TierBadge tier={credit.tier} size="sm" /> : null}
-            </div>
-            <div className="mt-4 grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Borrow (mUSDC)" hint="6 decimals">
-                  <TextInput value={debt} onChange={(e) => setDebt(e.target.value)} inputMode="decimal" />
-                </Field>
-                <Field label="Lock (CTC)" hint="18 decimals">
-                  <TextInput value={locked} onChange={(e) => setLocked(e.target.value)} inputMode="decimal" />
-                </Field>
-              </div>
-              <Card className="border-dashed bg-paper p-4">
-                <div className="grid grid-cols-2 gap-3 font-mono text-[13px]">
-                  <span className="text-muted">Collateral ratio</span>
-                  <span className="tabular text-right">
-                    {quote.collateralBps == null ? "—" : `${quote.collateralBps / 100}%`}
-                  </span>
-                  <span className="text-muted">Required lock</span>
-                  <span className="tabular text-right">{quote.requiredCollateral ?? "—"}</span>
-                  <span className="text-muted">APR</span>
-                  <span className="tabular text-right">
-                    {quote.interestBps == null ? "—" : `${quote.interestBps / 100}%`}
-                  </span>
-                  <span className="text-muted">Max on locked</span>
-                  <span className="tabular text-right">{quote.maxBorrow ?? "—"}</span>
-                </div>
-              </Card>
-              {!quote.ready ? (
-                <p className="text-[13px] text-muted">Enter a valid borrow amount to get a quote.</p>
-              ) : !quote.requiredOk ? (
-                <p className="text-[13px] font-medium text-bronze">
-                  Thin collateral — lock {quote.requiredCollateral ?? "more"} or borrow less.
-                </p>
-              ) : null}
-              {borrowError ? (
-                <p className="text-[13px] font-medium text-bronze">
-                  Borrow failed: {borrowError.message.split("\n")[0]}
-                </p>
-              ) : null}
-              {borrowDone ? (
-                <p className="text-[13px] font-medium text-platinum">
-                  Borrowed — position updated below.
-                </p>
-              ) : null}
-              <Btn
-                disabled={!quote.ready || !quote.requiredOk || borrowPending || borrowMining}
-                onClick={() => {
-                  try {
-                    borrow({
-                      address: ADDRESSES.creditcoinTestnet.loanPool,
-                      abi: loanPoolAbi,
-                      functionName: "borrow",
-                      args: [parseUnits(debt.trim(), 6)],
-                      value: parseEther(locked.trim()),
-                    });
-                  } catch {
-                    /* invalid input stays disabled via quote.ready */
-                  }
-                }}
-              >
-                {borrowPending || borrowMining ? "Borrowing…" : "Borrow mUSDC"}
-              </Btn>
-            </div>
-          </Card>
+          <BorrowForm
+            tier={liveTier}
+            debt={debt}
+            setDebt={setDebt}
+            locked={locked}
+            setLocked={setLocked}
+            quote={quote}
+            borrowError={borrowError ? borrowError.message.split("\n")[0] : null}
+            borrowDone={borrowDone}
+            borrowBusy={borrowPending || borrowMining}
+            onBorrow={handleBorrow}
+            borrowHash={borrowHash}
+            explorerTx={explorerTx}
+          />
 
-          {/* POSITION */}
           <div className="grid gap-4">
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold tracking-tight">Your position</h3>
-                {credit.tier ? <TierBadge tier={credit.tier} size="sm" /> : null}
-              </div>
-              {position.debt == null ? (
-                <div className="mt-4">
-                  <EmptyState
-                    title="No open position"
-                    body="Borrow above to open one. Repayments and withdrawals land here."
-                  />
-                </div>
-              ) : (
-                <div className="tabular mt-4 grid grid-cols-3 gap-3 font-mono text-[14px]">
-                  <div>
-                    <p className="text-faint text-[12px]">LOCKED</p>
-                    <p>{position.collateral}</p>
-                  </div>
-                  <div>
-                    <p className="text-faint text-[12px]">REMAINING</p>
-                    <p>{owed === undefined ? "—" : `${formatUnits(owed as bigint, 6)} mUSDC`}</p>
-                  </div>
-                  <div>
-                    <p className="text-faint text-[12px]">RATE</p>
-                    <p>{position.rate == null ? "—" : `${position.rate / 100}%`}</p>
-                  </div>
-                </div>
-              )}
-              <div className="mt-4 grid gap-4">
-              <Field label="Repay amount (mUSDC)" hint="Interest is paid first, then principal.">
-                <div className="flex gap-2">
-                  <TextInput
-                    value={repayAmount}
-                    onChange={(e) => setRepayAmount(e.target.value)}
-                    inputMode="decimal"
-                    placeholder="0.00"
-                  />
-                  {needsApproval ? (
-                    <Btn
-                      variant="ink"
-                      disabled={repayWei === null || approvePending || approveMining}
-                      onClick={() => {
-                        if (repayWei === null) return;
-                        approve({
-                          address: ADDRESSES.creditcoinTestnet.mockUSDC,
-                          abi: mockUSDCAbi,
-                          functionName: "approve",
-                          args: [ADDRESSES.creditcoinTestnet.loanPool, repayWei],
-                        });
-                      }}
-                    >
-                      {approvePending || approveMining ? "Approving…" : "Approve"}
-                    </Btn>
-                  ) : (
-                    <Btn
-                      variant="ink"
-                      disabled={repayWei === null || repayWei <= BigInt(0) || repayPending || repayMining}
-                      onClick={() => {
-                        if (repayWei === null) return;
-                        repay({
-                          address: ADDRESSES.creditcoinTestnet.loanPool,
-                          abi: loanPoolAbi,
-                          functionName: "repay",
-                          args: [repayWei],
-                        });
-                      }}
-                    >
-                      {repayPending || repayMining ? "Repaying…" : "Repay"}
-                    </Btn>
-                  )}
-                </div>
-              </Field>
-              {repayError ? (
-                <p className="text-[13px] font-medium text-bronze">
-                  Repay failed: {repayError.message.split("\n")[0]}
-                </p>
-              ) : null}
-              {repayDone && repayHash ? (
-                <div className="rounded-lg border border-line bg-paper p-3">
-                  <p className="text-[13px] font-medium text-platinum">Repaid — position updated.</p>
-                  <p className="tabular mt-1 break-all font-mono text-[12px] text-muted">{repayHash}</p>
-                  <a
-                    href={explorerTx(repayHash)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-block font-mono text-[12px] text-gold-deep underline underline-offset-2 hover:text-ink"
-                  >
-                    View on explorer ↗
-                  </a>
-                </div>
-              ) : null}
-              {owed !== undefined && (owed as bigint) === BigInt(0) ? (
-              <>
-              <Field label="Withdraw collateral (CTC)" hint="Unlocks once nothing remains to pay.">
-                <div className="flex gap-2">
-                  <TextInput
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                    inputMode="decimal"
-                    placeholder="0.00"
-                  />
-                  <Btn
-                    variant="ink"
-                    disabled={withdrawWei === null || withdrawWei <= BigInt(0) || withdrawPending || withdrawMining}
-                    onClick={() => {
-                      if (withdrawWei === null) return;
-                      withdraw({
-                        address: ADDRESSES.creditcoinTestnet.loanPool,
-                        abi: loanPoolAbi,
-                        functionName: "withdrawCollateral",
-                        args: [withdrawWei],
-                      });
-                    }}
-                  >
-                    {withdrawPending || withdrawMining ? "Withdrawing…" : "Withdraw"}
-                  </Btn>
-                </div>
-              </Field>
-              {withdrawError ? (
-                <p className="text-[13px] font-medium text-bronze">
-                  Withdraw failed: {withdrawError.message.split("\n")[0]}
-                </p>
-              ) : null}
-              {withdrawDone && withdrawHash ? (
-                <div className="rounded-lg border border-line bg-paper p-3">
-                  <p className="text-[13px] font-medium text-platinum">Withdrawn — position updated.</p>
-                  <p className="tabular mt-1 break-all font-mono text-[12px] text-muted">{withdrawHash}</p>
-                  <a
-                    href={explorerTx(withdrawHash)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-block font-mono text-[12px] text-gold-deep underline underline-offset-2 hover:text-ink"
-                  >
-                    View on explorer ↗
-                  </a>
-                </div>
-              ) : null}
-              </>
-              ) : null}
-              </div>
-            </Card>
+            <PositionCard
+              tier={liveTier}
+              position={position}
+              owed={owed as bigint | undefined}
+              repayAmount={repayAmount}
+              setRepayAmount={setRepayAmount}
+              needsApproval={needsApproval}
+              repayReady={repayWei !== null && repayWei > BigInt(0)}
+              approveBusy={approvePending || approveMining}
+              onApprove={handleApprove}
+              repayBusy={repayPending || repayMining}
+              onRepay={handleRepay}
+              repayError={repayError ? repayError.message.split("\n")[0] : null}
+              repayHash={repayHash}
+              repayConfirmed={repayDone}
+              showWithdraw={owed !== undefined && (owed as bigint) === BigInt(0)}
+              withdrawAmount={withdrawAmount}
+              setWithdrawAmount={setWithdrawAmount}
+              withdrawMax={position.collateral == null ? null : position.collateral.split(" ")[0]}
+              withdrawReady={withdrawWei !== null && withdrawWei > BigInt(0)}
+              withdrawBusy={withdrawPending || withdrawMining}
+              onWithdraw={handleWithdraw}
+              withdrawError={withdrawError ? withdrawError.message.split("\n")[0] : null}
+              withdrawHash={withdrawDone ? withdrawHash : undefined}
+              explorerTx={explorerTx}
+            />
 
             {/* RATES */}
             <Card className="p-6">

@@ -99,6 +99,7 @@ export type Quote = {
   collateralBps: number | null;
   interestBps: number | null;
   requiredCollateral: string | null;
+  requiredCtC: number | null;
   requiredOk: boolean;
   maxBorrow: string | null;
   ready: boolean;
@@ -169,7 +170,7 @@ export function useBorrowQuote(
   });
 
   if (!ready) {
-    return { collateralBps: null, interestBps: null, requiredCollateral: null, requiredOk: false, maxBorrow: null, ready: false };
+    return { collateralBps: null, interestBps: null, requiredCollateral: null, requiredCtC: null, requiredOk: false, maxBorrow: null, ready: false };
   }
   const requiredOk =
     required !== undefined && lockedWei !== null && lockedWei >= (required as bigint);
@@ -177,6 +178,7 @@ export function useBorrowQuote(
     collateralBps: bps === undefined ? null : Number(bps),
     interestBps: apr === undefined ? null : Number(apr),
     requiredCollateral: required === undefined ? null : `${formatEther(required as bigint)} CTC`,
+    requiredCtC: required === undefined ? null : Number(formatEther(required as bigint)),
     requiredOk,
     maxBorrow:
       maxB === undefined ? null : `${formatUnits(maxB as bigint, 6)} mUSDC`,
@@ -246,13 +248,13 @@ export function useEvidence(protocol: string, kind: string): {
 
   useEffect(() => {
     let live = true;
-    setState((s) => ({ ...s, loading: true }));
+    // No sync reset here: previous rows stay visible until the new set lands.
     fetch(`/api/evidence?protocol=${protocol}&kind=${kind}`)
       .then((r) => r.json())
-      .then((body) => {
+      .then((body: EvidenceApi) => {
         if (!live) return;
         setState({
-          rows: (body.rows ?? []).map((r: any) => ({
+          rows: (body.rows ?? []).map((r) => ({
             txn: r.txn,
             protocol: r.protocol,
             kind: r.kind === "liquidation" ? "liquidation" : "repay",
@@ -278,13 +280,18 @@ export function useEvidence(protocol: string, kind: string): {
   return state;
 }
 
-export function useProve(_payload: string, _chainKey: 1 | 3 = 3): {
-  state: "idle" | "verifying" | "done" | "error";
-  submit: () => void;
-} {
-  // TODO(retrieval): submit proof payload to creditScore.execute via useWriteContract.
-  void _payload;
-  void _chainKey;
-  const [state] = useState<"idle" | "verifying" | "done" | "error">("idle");
-  return { state, submit: () => {} };
-}
+type EvidenceApiRow = {
+  txn: string;
+  protocol: string;
+  kind: string;
+  amountRaw?: string | null;
+  txHash: string;
+  chainKey?: number | null;
+};
+
+type EvidenceApi = {
+  rows?: EvidenceApiRow[];
+  total?: number;
+  totalProved?: number;
+  breakdown?: { protocol: string; kind: string; count: number }[];
+};
