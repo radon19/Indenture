@@ -99,7 +99,7 @@ export default function PositionCard({
           />
         </div>
       ) : (
-        <div className="tabular mt-4 grid grid-cols-3 gap-3 font-mono text-[14px]">
+        <div className="tabular mt-4 grid grid-cols-1 gap-2 font-mono text-[14px] min-[480px]:grid-cols-3 min-[480px]:gap-3">
           <div>
             <p className="text-faint text-[12px]">LOCKED</p>
             <p>{position.collateral}</p>
@@ -116,7 +116,7 @@ export default function PositionCard({
       )}
       <div className="mt-4 grid gap-4">
         <Field label="Repay amount (mUSDC)" hint="Interest is paid first, then principal.">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <TextInput
               value={repayAmount}
               onChange={(e) => setRepayAmount(e.target.value)}
@@ -124,11 +124,11 @@ export default function PositionCard({
               placeholder="0.00"
             />
             {needsApproval ? (
-              <Btn variant="ink" disabled={!repayReady || approveBusy} onClick={onApprove}>
+              <Btn variant="ink" className="w-full sm:w-auto" disabled={!repayReady || approveBusy} onClick={onApprove}>
                 {approveBusy ? "Approving…" : "Approve"}
               </Btn>
             ) : (
-              <Btn variant="ink" disabled={!repayReady || repayBusy} onClick={onRepay}>
+              <Btn variant="ink" className="w-full sm:w-auto" disabled={!repayReady || repayBusy} onClick={onRepay}>
                 {repayBusy ? "Repaying…" : "Repay"}
               </Btn>
             )}
@@ -147,28 +147,32 @@ export default function PositionCard({
         {showWithdraw ? (
           <>
               <Field label="Withdraw collateral (CTC)" hint="Unlocks once nothing remains to pay.">
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <TextInput
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     inputMode="decimal"
                     placeholder="0.00"
                   />
-                  {withdrawMax ? (
+                  <div className="flex gap-2">
+                    {withdrawMax ? (
+                      <Btn
+                        variant="ghost"
+                        className="flex-1 sm:flex-none"
+                        onClick={() => setWithdrawAmount(withdrawMax)}
+                      >
+                        Max
+                      </Btn>
+                    ) : null}
                     <Btn
-                      variant="ghost"
-                      onClick={() => setWithdrawAmount(withdrawMax)}
+                      variant="ink"
+                      className="flex-1 sm:flex-none"
+                      disabled={!withdrawReady || withdrawBusy}
+                      onClick={onWithdraw}
                     >
-                      Max
+                      {withdrawBusy ? "Withdrawing…" : "Withdraw"}
                     </Btn>
-                  ) : null}
-                  <Btn
-                    variant="ink"
-                    disabled={!withdrawReady || withdrawBusy}
-                    onClick={onWithdraw}
-                  >
-                    {withdrawBusy ? "Withdrawing…" : "Withdraw"}
-                  </Btn>
+                  </div>
                 </div>
               </Field>
             {withdrawError ? (

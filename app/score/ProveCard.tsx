@@ -99,14 +99,14 @@ export default function ProveCard({
       </ol>
       <div className="mt-4">
         <Field label="Source transaction hash">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <TextInput
               value={txHash}
               onChange={(e) => onTxHashChange(e.target.value)}
               placeholder="0x…"
               spellCheck={false}
             />
-            <Btn variant="ink" disabled={checking || !txHash.trim()} onClick={onCheck}>
+            <Btn variant="ink" className="w-full sm:w-auto" disabled={checking || !txHash.trim()} onClick={onCheck}>
               {checking ? "Checking…" : "Check"}
             </Btn>
           </div>

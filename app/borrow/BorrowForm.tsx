@@ -37,7 +37,7 @@ export default function BorrowForm({
         {tier ? <TierBadge tier={tier} size="sm" /> : null}
       </div>
       <div className="mt-4 grid gap-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2">
           <Field label="Borrow (mUSDC)" hint="6 decimals">
             <TextInput value={debt} onChange={(e) => setDebt(e.target.value)} inputMode="decimal" />
           </Field>

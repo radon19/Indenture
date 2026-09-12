@@ -79,7 +79,8 @@ export default function EvidencePage() {
       </div>
 
       <Card className="mt-4 overflow-hidden">
-        <table className="w-full text-left text-[13px]">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[620px] text-left text-[13px]">
           <thead>
               <tr className="border-b border-line bg-parchment font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
               <th className="px-4 py-2.5 font-medium">Transaction</th>
@@ -130,6 +131,7 @@ export default function EvidencePage() {
                 ))}
           </tbody>
         </table>
+        </div>
         {rows.length === 0 && !loading ? (
           <div className="p-4">
             <EmptyState

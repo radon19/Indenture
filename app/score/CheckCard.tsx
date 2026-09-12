@@ -46,14 +46,14 @@ export default function CheckCard({
       <h3 className="text-lg font-semibold tracking-tight">Check score</h3>
       <div className="mt-4">
         <Field label="Borrower address">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <TextInput
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="0x…"
               spellCheck={false}
             />
-            <Btn variant="ink" onClick={onLookup}>
+            <Btn variant="ink" className="w-full sm:w-auto" onClick={onLookup}>
               Look up
             </Btn>
           </div>

@@ -116,7 +116,8 @@ export default function DocsPage() {
           else reverts loudly instead of scoring wrong — that is the policy.
         </p>
         <Card className="mt-3 overflow-hidden">
-          <table className="w-full text-left text-[13px]">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line bg-parchment font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
                 <th className="px-4 py-2.5 font-medium">Token</th>
@@ -138,6 +139,7 @@ export default function DocsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       </section>
 

@@ -41,7 +41,7 @@ function Hero() {
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-gold-deep">
             On-chain credit, verified cross-chain
           </p>
-          <h1 className="mt-4 font-display text-6xl font-semibold leading-[1.02] tracking-tight text-ink sm:text-7xl">
+          <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-ink sm:text-7xl sm:leading-[1.02]">
             One Credit Score.
             <br />
             Every Chain.
