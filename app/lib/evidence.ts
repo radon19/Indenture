@@ -15,7 +15,7 @@ export type EvidenceInput = {
  * the row and never double-counts. Returns the global total.
  */
 export async function recordProof(input: EvidenceInput): Promise<{ totalProved: number; fresh: boolean }> {
-  const existing = await db.evidence.findUnique({ where: { txHash: input.txHash.toLowerCase() } });
+  const txHash = input.txHash.toLowerCase();
   const data = {
     chainKey: input.chainKey,
     protocol: input.protocol,
@@ -24,17 +24,21 @@ export async function recordProof(input: EvidenceInput): Promise<{ totalProved: 
     amountRaw: input.amountRaw,
     blockNumber: input.blockNumber,
   };
-  if (existing) {
-    await db.evidence.update({ where: { txHash: input.txHash.toLowerCase() }, data });
-  } else {
-    await db.evidence.create({ data: { txHash: input.txHash.toLowerCase(), ...data } });
+  try {
+    await db.evidence.create({ data: { txHash, ...data } });
+    const counter = await db.counter.upsert({
+      where: { id: 1 },
+      update: { totalProved: { increment: 1 } },
+      create: { id: 1, totalProved: 1 },
+    });
+    return { totalProved: counter.totalProved, fresh: true };
+  } catch (e) {
+    // ponytail: create-first, not find-first — the unique constraint is the
+    // atomic dedupe. Must stay outside $transaction: postgres aborts the
+    // whole tx on P2002 (25P02), so catch-and-update inside one tx can't work.
+    if ((e as { code?: string }).code !== "P2002") throw e;
+    await db.evidence.update({ where: { txHash }, data });
+    const counter = await db.counter.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
+    return { totalProved: counter.totalProved, fresh: false };
   }
-  const counter = existing
-    ? await db.counter.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } })
-    : await db.counter.upsert({
-        where: { id: 1 },
-        update: { totalProved: { increment: 1 } },
-        create: { id: 1, totalProved: 1 },
-      });
-  return { totalProved: counter.totalProved, fresh: !existing };
 }
