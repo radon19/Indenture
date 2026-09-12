@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/header/indenture-logo.svg" alt="Indenture Logo" width="80" />
+<img src="public/indentureLogo.svg" alt="Indenture Logo" width="80" />
 
 # Indenture
 
