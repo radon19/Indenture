@@ -203,9 +203,34 @@ export default function ReceiptPage({
           </div>
         )}
 
-        <p className="mt-8 border-t border-line pt-4 text-[12.5px] leading-relaxed text-muted">
-          Verify live: {APP_URL}/receipt/{address.trim()} · {APP_URL}/evidence · every row
-          links to its explorer transaction. Paper states, chain proves.
+        <div className="mt-8 rounded-xl border border-gold/60 bg-gold/10 p-5 print:border-line print:bg-white">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-deep">
+            Signed by Indenture · {today}
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed">
+            {proofs.length === 0
+              ? "No transactions have been recorded against this wallet yet."
+              : `These ${proofs.length} transaction${proofs.length === 1 ? " was" : "s were"} verified on-chain and recorded against this wallet.`}
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-muted">
+            Indenture files nothing itself — proving is permissionless, so anyone can file
+            history for anyone. A hidden liquidation can be reported by a lender, a
+            competitor, or a bot: more eyes make the record truer, never noisier. Paper
+            states, chain proves.
+          </p>
+        </div>
+
+        <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
+          Verify live:{" "}
+          <a
+            href={`${APP_URL}/receipt/${address.trim()}`}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-gold-deep underline underline-offset-2 hover:text-ink"
+          >
+            {APP_URL}/receipt/{address.trim()}
+          </a>{" "}
+          
         </p>
       </Card>
     </div>

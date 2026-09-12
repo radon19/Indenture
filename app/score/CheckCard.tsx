@@ -111,12 +111,13 @@ export default function CheckCard({
                 </dd>
               </div>
             </dl>
-            <div className="flex justify-end px-6 pb-5">
+            <div className="mx-6 mb-6 rounded-xl bg-gold">
               <Link
                 href={`/receipt/${submitted}`}
-                className="font-mono text-[12px] text-gold underline underline-offset-2 hover:text-paper"
+                className="flex items-center justify-between px-5 py-3 text-[15px] font-semibold text-ink hover:bg-gold-deep hover:text-paper rounded-xl transition-colors"
               >
-                Print receipt ↗
+                Print receipt
+                <span aria-hidden>↗</span>
               </Link>
             </div>
           </div>
