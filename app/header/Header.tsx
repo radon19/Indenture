@@ -19,7 +19,7 @@ function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-paper">
+    <header className="sticky top-0 z-50 border-b border-line bg-paper print:hidden">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-x-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <IndentureLogo size={40} className="rounded-lg shadow-md ring-1 ring-line" />

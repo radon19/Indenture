@@ -224,6 +224,7 @@ export type EvidenceRow = {
   status: "verified" | "pending";
   txHash: string;
   chainKey: number;
+  borrower: string | null;
 };
 
 export const EXPLORERS: Record<number, string> = {
@@ -262,6 +263,7 @@ export function useEvidence(protocol: string, kind: string): {
             status: "verified" as const,
             txHash: r.txHash,
             chainKey: r.chainKey ?? 3,
+            borrower: r.borrower ?? null,
           })),
           loading: false,
           total: body.total ?? 0,
@@ -285,6 +287,7 @@ type EvidenceApiRow = {
   protocol: string;
   kind: string;
   amountRaw?: string | null;
+  borrower?: string | null;
   txHash: string;
   chainKey?: number | null;
 };

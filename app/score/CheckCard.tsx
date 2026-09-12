@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, Field, TextInput, Btn, EmptyState, TierBadge, type TierName } from "../components/ui";
 import type { CreditView } from "../lib/stubs";
 import { formatUnits } from "viem";
@@ -85,19 +86,19 @@ export default function CheckCard({
               <p className="tabular mt-1 font-mono text-2xl font-semibold text-paper">{credit.score}</p>
               <p className="mt-1 font-mono text-[12px] text-paper/45">/ 900</p>
             </div>
-            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-paper/10 font-mono">
+            <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-paper/10 font-mono min-[480px]:grid-cols-2">
               {[
                 ["Capacity", credit.capacity == null ? "—" : usd(credit.capacity)],
                 ["Max repay", credit.maxRepayment == null ? "—" : usd(credit.maxRepayment)],
                 ["Venues", credit.venues == null ? "—" : String(credit.venues)],
                 ["Defaults", credit.defaults == null ? "—" : String(credit.defaults)],
               ].map(([label, value]) => (
-                <div key={label} className="px-5 py-4">
+                <div key={label} className="min-w-0 px-5 py-4">
                   <dt className="text-[11px] uppercase tracking-[0.16em] text-paper/45">{label}</dt>
-                  <dd className="tabular mt-1 text-xl font-semibold text-paper">{value}</dd>
+                  <dd className="tabular mt-1 break-words text-xl font-semibold text-paper">{value}</dd>
                 </div>
               ))}
-              <div className="col-span-2 px-5 py-4">
+              <div className="col-span-1 px-5 py-4 min-[480px]:col-span-2">
                 <dt className="text-[11px] uppercase tracking-[0.16em] text-paper/45">Oldest activity</dt>
                 <dd className="tabular mt-1 text-xl font-semibold text-paper">
                   {credit.oldestActivity == null || credit.oldestActivity === "0"
@@ -110,6 +111,14 @@ export default function CheckCard({
                 </dd>
               </div>
             </dl>
+            <div className="flex justify-end px-6 pb-5">
+              <Link
+                href={`/receipt/${submitted}`}
+                className="font-mono text-[12px] text-gold underline underline-offset-2 hover:text-paper"
+              >
+                Print receipt ↗
+              </Link>
+            </div>
           </div>
         </div>
       )}

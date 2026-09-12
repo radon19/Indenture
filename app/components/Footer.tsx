@@ -3,7 +3,7 @@ import { IndentureLogo } from "../header/IndentureLogo";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-line-dark bg-ink text-paper">
+    <footer className="border-t border-line-dark bg-ink text-paper print:hidden">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-4 px-4 py-8 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <IndentureLogo size={26} className="rounded-md" />

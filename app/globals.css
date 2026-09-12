@@ -61,3 +61,12 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+@media print {
+  /* Paper states, chain proves: expand links to full URLs on print. */
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    word-break: break-all;
+  }
+}
