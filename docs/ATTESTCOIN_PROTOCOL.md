@@ -21,7 +21,8 @@ fail:
 | Trust a bridge message | Bridge validator sets get captured |
 | Replay full blocks on Creditcoin | Prohibitively expensive per proof |
 
-Attestcoin's answer: the destination chain itself checks a Merkle inclusion proof
+### Attestcoin's answer
+The destination chain itself checks a Merkle inclusion proof
 against attested block roots, plus a continuity proof chaining the block back to
 attested history — executed synchronously inside a Creditcoin block by a
 precompile. Forging history means forging the attestor set's signatures, not
