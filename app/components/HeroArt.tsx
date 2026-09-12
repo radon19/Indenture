@@ -50,8 +50,8 @@ export default function HeroArt({ className = "" }: { className?: string }) {
         Platinum
       </text>
       <text x="196" y="200" fontSize="12" fill="#6E6455" fontFamily="ui-monospace, monospace">
-  85% COLLATERAL
-  <tspan x="196" dy="1.5em">6% APR</tspan>
+  90% COLLATERAL
+  <tspan x="196" dy="1.5em">5% APR</tspan>
 </text>
       
        

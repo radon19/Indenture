@@ -25,7 +25,7 @@ export const TIERS: {
   { name: "Bronze", score: "< 250", collateral: "150%", apr: "18%", blurb: "Starting terms. Every wallet begins here." },
   { name: "Silver", score: "≥ 250", collateral: "130%", apr: "12%", blurb: "Proven repayment volume on record." },
   { name: "Gold", score: "≥ 500", collateral: "110%", apr: "8%", blurb: "Deep history across venues." },
-  { name: "Platinum", score: "≥ 700 + spotless", collateral: "85%", apr: "6%", blurb: "Borrow more than you post. No defaults, ever." },
+  { name: "Platinum", score: "≥ 700 + spotless", collateral: "90%", apr: "5%", blurb: "Borrow more than you post. No defaults, ever." },
 ];
 
 export const PROTOCOLS = ["aave", "spark", "compound"] as const;

@@ -88,7 +88,7 @@ function Hero() {
           </div>
           <dl className="mt-12 grid max-w-3xl grid-cols-2 gap-6 sm:grid-cols-4">
             <Stat label="Score range" value="400–900" sub="600 default" />
-            <Stat label="Top tier" value="85%" sub="collateral at Platinum" />
+            <Stat label="Top tier" value="90%" sub="collateral at Platinum" />
             <Stat
               label="Payments proved"
               value={
@@ -172,7 +172,7 @@ function Hero() {
               {
                 n: "03",
                 title: "Borrow",
-                body: "Lock CTC, draw mockUSDC at tier-priced terms. Platinum posts 85% collateral for the full loan.",
+                body: "Lock CTC, draw mockUSDC at tier-priced terms. Platinum posts 90% collateral for the full loan.",
               },
             ].map((s) => (
               <Card key={s.n} className="p-6">
