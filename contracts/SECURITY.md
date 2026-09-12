@@ -80,6 +80,14 @@ launched the proxy atomically). All three app contracts answer to the 2-of-3
 Safe; the handover is verified on-chain. Operator tooling (`worker/safe.ts`:
 propose → collect → execute) ships with the repo.
 
+### S11 — Paper that points back to chain
+Printable receipts (`/receipt/[address]`, `GET /api/receipt?user=`) restate
+score, tier, and filed proofs with live verify links per row — but the
+statement is unsigned by design. The paper never outranks the chain: every
+claim re-derives from registry reads and explorer transactions. Filing is
+atomic (create-first, `P2002` falls back to update), so concurrent proofs of
+the same transaction can't double-count the counter.
+
 ## Not implemented, on purpose (with reasons, not excuses)
 
 ### D1 — Timelock, not the vault

@@ -43,6 +43,7 @@ export default function SecurityPage() {
           <Item title="S8 — Provenance you can re-derive" body="Real mainnet receipts, a 45-transaction volume run, live evidence rows — any reviewer with cast can redo every number." />
           <Item title="S9 — Tenure pays the patient" body="Seasoned proven history earns +10 past 30 days, hard-capped with the 900 ceiling. Old honest wallets outrank fresh farmed ones." />
           <Item title="S10 — Multisig is live" body="Official Safe bytecode deployed by us, all three contracts owned by the 2-of-3 vault, verified on-chain. Propose, collect, execute tooling ships in the repo." />
+          <Item title="S11 — Paper that points back to chain" body="Printable receipts restate score, tier, and filed proofs with live verify links per row — but the statement is unsigned by design. The paper never outranks the chain: every claim re-derives from registry reads and explorer transactions. Filing itself is atomic (one create wins, retries update), so concurrent proofs of the same transaction can't double-count." />
         </Card>
       </section>
 

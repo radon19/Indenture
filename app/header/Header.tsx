@@ -7,8 +7,8 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { IndentureLogo } from "./IndentureLogo";
 
 const NAV = [
-  { href: "/borrow", label: "Borrow", hot: true },
   { href: "/score", label: "Score", hot: true },
+  { href: "/borrow", label: "Borrow", hot: true },
   { href: "/evidence", label: "Evidence", hot: false },
   { href: "/docs", label: "Docs", hot: false },
   { href: "/security", label: "Security", hot: false },

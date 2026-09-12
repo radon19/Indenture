@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, SectionHeading, Skeleton, Stat, TierBadge } from "./ui";
 import HeroArt from "./HeroArt";
 import { TIERS, type TierName } from "../lib/site";
@@ -23,6 +24,9 @@ function GitHubMark({ className = "h-4.5 w-4.5" }: { className?: string }) {
 
 function Hero() {
   const [totalProved, setTotalProved] = useState<number | null>(null);
+  const [receiptAddr, setReceiptAddr] = useState("");
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/evidence")
@@ -32,6 +36,15 @@ function Hero() {
       })
       .catch(() => {});
   }, []);
+
+  function openReceipt() {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(receiptAddr.trim())) {
+      setReceiptError("that doesn't look like an address (0x followed by 40 hex characters)");
+      return;
+    }
+    setReceiptError(null);
+    router.push(`/receipt/${receiptAddr.trim()}`);
+  }
   return (
     <div>
       {/* HERO */}
@@ -48,7 +61,7 @@ function Hero() {
           </h1>
           <p className="mt-5 max-w-xl text-[19px] leading-relaxed text-muted">
             Prove repayment once. Borrow everywhere. Your Aave, Spark, and
-            Compound history — one score you can use everywhere.
+            Compound history — one score with receipt you can use everywhere.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -92,6 +105,46 @@ function Hero() {
           </div>
           <div className="mx-auto w-full max-w-110">
             <HeroArt className="h-auto w-full drop-shadow-xl" />
+          </div>
+        </div>
+      </section>
+
+      {/* RECEIPT LOOKUP */}
+      <section className="border-b border-line bg-card">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 sm:px-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-xl">
+            <h2 className="font-display text-2xl font-semibold tracking-tight">
+              Print a proof of record.
+            </h2>
+            <p className="mt-1 text-[14px] leading-relaxed text-muted">
+              Any wallet, one printable sheet — score, tier, and every filed proof, each
+              row verifiable live.
+            </p>
+          </div>
+          <div className="w-full md:max-w-md">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={receiptAddr}
+                onChange={(e) => setReceiptAddr(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") openReceipt();
+                }}
+                placeholder="0x…"
+                spellCheck={false}
+                aria-label="Wallet address for receipt"
+                className="w-full rounded-lg border border-line bg-paper px-3 py-2 font-mono text-[14px] text-ink placeholder:text-faint focus:border-gold focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={openReceipt}
+                className="rounded-lg bg-ink px-4 py-2 text-[14px] font-semibold text-paper hover:bg-ink-soft w-full sm:w-auto"
+              >
+                Get receipt
+              </button>
+            </div>
+            {receiptError ? (
+              <p className="mt-2 text-[13px] font-medium text-bronze">{receiptError}</p>
+            ) : null}
           </div>
         </div>
       </section>
