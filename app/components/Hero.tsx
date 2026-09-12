@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, SectionHeading, Stat, TierBadge } from "./ui";
+import { Card, SectionHeading, Skeleton, Stat, TierBadge } from "./ui";
 import HeroArt from "./HeroArt";
 import { TIERS, type TierName } from "../lib/site";
 
@@ -78,7 +78,13 @@ function Hero() {
             <Stat label="Top tier" value="85%" sub="collateral at Platinum" />
             <Stat
               label="Payments proved"
-              value={totalProved == null ? "—" : String(totalProved)}
+              value={
+                totalProved == null ? (
+                  <Skeleton className="h-8 w-20 align-middle" />
+                ) : (
+                  String(totalProved)
+                )
+              }
               sub="and counting"
             />
             <Stat label="Test checks" value="112" sub="all green" />

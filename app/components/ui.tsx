@@ -67,6 +67,16 @@ export function SectionHeading({
   );
 }
 
+/** Pulsing stand-in for content still loading. Size it via className. */
+export function Skeleton({ className = "" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-block animate-pulse rounded-md bg-line motion-reduce:animate-none ${className}`}
+    />
+  );
+}
+
 export function Stat({
   label,
   value,
@@ -74,7 +84,7 @@ export function Stat({
   dark = false,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   sub?: string;
   dark?: boolean;
 }) {

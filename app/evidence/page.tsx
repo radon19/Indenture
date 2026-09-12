@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Card, SectionHeading, EmptyState } from "../components/ui";
+import { Card, SectionHeading, EmptyState, Skeleton } from "../components/ui";
 import { PROTOCOLS, PROTOCOL_LABEL, type Protocol } from "../lib/site";
 import { EXPLORERS } from "../lib/stubs";
 import { useEvidence } from "../lib/stubs";
@@ -39,7 +39,7 @@ export default function EvidencePage() {
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">Total payments proved</p>
           <p className="tabular mt-0.5 font-mono text-3xl font-semibold">
-            {loading ? "—" : totalProved}
+            {loading ? <Skeleton className="h-9 w-24 align-middle" /> : totalProved}
           </p>
         </div>
         <p className="max-w-md pb-1 text-[13px] text-muted">
@@ -90,24 +90,44 @@ export default function EvidencePage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.txHash} className="tabular border-b border-line/60 font-mono last:border-0">
-                <td className="px-4 py-2.5" title={r.txHash}>
-                  <a
-                    href={`${EXPLORERS[r.chainKey] ?? EXPLORERS[3]}/tx/${r.txHash}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-gold-deep underline underline-offset-2 hover:text-ink"
-                  >
-                    {r.txHash.slice(0, 10)}…{r.txHash.slice(-6)} ↗
-                  </a>
-                </td>
-                <td className="px-4 py-2.5">{r.protocol}</td>
-                <td className="px-4 py-2.5">{r.kind}</td>
-                <td className="px-4 py-2.5">{r.amount}</td>
-                <td className="px-4 py-2.5">{r.status}</td>
-              </tr>
-            ))}
+            {loading
+              ? Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={`skeleton-${i}`} className="border-b border-line/60 last:border-0">
+                    <td className="px-4 py-2.5">
+                      <Skeleton className="h-4 w-36" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Skeleton className="h-4 w-20" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Skeleton className="h-4 w-20" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Skeleton className="h-4 w-24" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Skeleton className="h-4 w-16" />
+                    </td>
+                  </tr>
+                ))
+              : rows.map((r) => (
+                  <tr key={r.txHash} className="tabular border-b border-line/60 font-mono last:border-0">
+                    <td className="px-4 py-2.5" title={r.txHash}>
+                      <a
+                        href={`${EXPLORERS[r.chainKey] ?? EXPLORERS[3]}/tx/${r.txHash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gold-deep underline underline-offset-2 hover:text-ink"
+                      >
+                        {r.txHash.slice(0, 10)}…{r.txHash.slice(-6)} ↗
+                      </a>
+                    </td>
+                    <td className="px-4 py-2.5">{r.protocol}</td>
+                    <td className="px-4 py-2.5">{r.kind}</td>
+                    <td className="px-4 py-2.5">{r.amount}</td>
+                    <td className="px-4 py-2.5">{r.status}</td>
+                  </tr>
+                ))}
           </tbody>
         </table>
         {rows.length === 0 && !loading ? (
@@ -135,10 +155,14 @@ export default function EvidencePage() {
             <Card key={p} className="p-5">
               <p className="text-[14px] font-semibold">{PROTOCOL_LABEL[p]}</p>
               <p className="tabular mt-1 font-mono text-3xl font-semibold">
-                {loading ? "—" : c.total}
+                {loading ? <Skeleton className="h-9 w-20 align-middle" /> : c.total}
               </p>
               <p className="mt-1 text-[13px] text-muted">
-                {loading ? "loading…" : `${c.repays} repayments, ${c.liqs} liquidations`}
+                {loading ? (
+                  <Skeleton className="h-4 w-44 align-middle" />
+                ) : (
+                  `${c.repays} repayments, ${c.liqs} liquidations`
+                )}
               </p>
             </Card>
           );
