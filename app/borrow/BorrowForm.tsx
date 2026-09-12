@@ -3,6 +3,8 @@
 import { Card, Field, TextInput, Btn, TierBadge, type TierName } from "../components/ui";
 import type { Quote } from "../lib/stubs";
 
+// New-loan form. Takes tier/debt/lock + live quote, renders terms and gates
+// the borrow button on quote readiness + sufficient collateral.
 export default function BorrowForm({
   tier,
   debt,

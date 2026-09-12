@@ -16,6 +16,8 @@ const TIER_DOT = {
   Platinum: "bg-platinum",
 } as const;
 
+// Printable Proof of Record. Takes the wallet from the path, loads chain
+// score + filed proofs, renders the sheet. Proof rows match on borrower.
 export default function ReceiptPage({
   params,
 }: {
@@ -26,6 +28,7 @@ export default function ReceiptPage({
   const { data: credit, isLoading: scoreLoading } = useCreditScore(
     valid ? address.trim() : undefined,
   );
+  // Takes all evidence rows, keeps the ones crediting this wallet.
   const { rows, loading: evidenceLoading } = useEvidence("all", "all");
   const proofs = valid
     ? rows.filter(

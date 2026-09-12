@@ -83,6 +83,7 @@ export default function BorrowPage() {
   const explorerTx = (hash: `0x${string}`) =>
     `${creditCoin3Testnet.blockExplorers.default.url}/tx/${hash}`;
 
+  // Takes debt/lock text, sends borrow(debt) with CTC value attached.
   function handleBorrow() {
     try {
       borrow({
@@ -97,6 +98,7 @@ export default function BorrowPage() {
     }
   }
 
+  // Takes the repay amount, approves the pool to pull mUSDC first.
   function handleApprove() {
     if (repayWei === null) return;
     approve({
@@ -107,6 +109,7 @@ export default function BorrowPage() {
     });
   }
 
+  // Takes the repay amount, repays (pool takes interest first, then principal).
   function handleRepay() {
     if (repayWei === null) return;
     repay({
@@ -117,6 +120,7 @@ export default function BorrowPage() {
     });
   }
 
+  // Takes the withdraw amount, releases CTC (only while nothing is owed).
   function handleWithdraw() {
     if (withdrawWei === null) return;
     withdraw({

@@ -39,6 +39,7 @@ function safe(): ethers.Contract {
   return new ethers.Contract(need("SAFE_ADDRESS"), SAFE_ABI, new ethers.JsonRpcProvider(rpc));
 }
 
+// Takes to/value/data args, snapshots the Safe nonce, stores a proposal.
 async function propose() {
   const [to, value, data] = [process.argv[3], process.argv[4] ?? "0", process.argv[5] ?? "0x"];
   if (!to || !ethers.isAddress(to)) throw new Error("usage: propose <to> [value] [data]");
@@ -61,7 +62,7 @@ async function sign() {
   const wallet = new ethers.Wallet(key);
   const flat = await wallet.signMessage(ethers.getBytes(p.hash));
   const sig = ethers.Signature.from(flat);
-  // Safe wants eth_sign type: v 27/28 shifted to 31/32 so it hashes with the prefix.
+  // v 27/28 shifted to 31/32: Safe expects eth_sign type (prefixed hash).
   const adjusted = sig.r + sig.s.slice(2) + (Number(sig.v) + 4).toString(16).padStart(2, "0");
   if (p.signatures.some((s) => s.signer.toLowerCase() === wallet.address.toLowerCase())) {
     throw new Error("already signed by this key");
@@ -71,6 +72,7 @@ async function sign() {
   console.log(`signed proposal ${id} as ${wallet.address} (${p.signatures.length}/2+)`);
 }
 
+// Takes a proposal id, checks 2 signatures + live nonce, executes on-chain.
 async function execute() {
   const [id, keyName] = [process.argv[3], process.argv[4] ?? "SIGNER_KEY"];
   const all = load();

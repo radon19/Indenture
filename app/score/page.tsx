@@ -48,6 +48,7 @@ export default function ScorePage() {
   const { address } = useAccount();
   const { data: credit, isLoading } = useCreditScore(submitted || undefined);
 
+  // Takes the address textbox, validates shape, submits it for score lookup.
   function handleLookup() {
     if (!/^0x[0-9a-fA-F]{40}$/.test(query.trim())) {
       setQueryError("that doesn't look like an address (0x followed by 40 hex characters)");
@@ -57,6 +58,7 @@ export default function ScorePage() {
     setSubmitted(query.trim());
   }
 
+  // Takes the tx hash textbox, asks /api/prove, stores the checked proof.
   async function checkTx() {
     const hash = txHash.trim();
     if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
@@ -161,7 +163,7 @@ export default function ScorePage() {
   const simReason = simFailed ? simError.message.split("\n").map((l) => l.trim()).filter(Boolean)[0] ?? "" : "";
   const simRecorded = simFailed && /alread.*process/i.test(simError.message);
 
-  /** Single entry point for submission: validates, sends, and owns every outcome. */
+  // Takes the checked proof, validates freshness + shape, sends execute().
   function handleSubmit() {
     if (!address || !checked || submitting || (simLoading && !simSlow)) return;
     if (Date.now() - checked.checkedAt > PROOF_TTL_MS) {

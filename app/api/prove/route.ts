@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-/** Same-origin gate: browser calls here, server calls the worker with the secret. */
+// POST /api/prove — takes {chainKey, txHash}, forwards to the worker with the
+// secret (browsers never hold it), passes the proof back through.
 export async function POST(req: Request) {
   let body: Record<string, unknown>;
   try {

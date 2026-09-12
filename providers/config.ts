@@ -5,6 +5,7 @@ import {
 } from 'wagmi/chains';
 import { http, fallback } from 'wagmi';
 
+// Wagmi config: Sepolia + Creditcoin chains, Creditcoin RPC with fallback.
 const config = getDefaultConfig({
   appName: 'Indenture',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID??"",

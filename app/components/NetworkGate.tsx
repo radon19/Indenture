@@ -5,10 +5,8 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { creditCoin3Testnet } from "wagmi/chains";
 import { Card, SectionHeading, Btn } from "./ui";
 
-/**
- * Renders children only on Creditcoin. On any other connected chain,
- * hides the page behind a switch box instead.
- */
+// Takes children, renders them only on Creditcoin. Any other connected chain
+// gets a switch-network box instead; disconnected visitors pass through.
 export default function NetworkGate({ children }: { children: ReactNode }) {
   const { chainId, isConnected } = useAccount();
   const { switchChain, isPending, error } = useSwitchChain();

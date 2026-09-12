@@ -6,7 +6,7 @@ const PORT = Number(process.env.PORT ?? process.env.WORKER_PORT ?? 3001);
 const COMET_USDC = "0xc3d688B66703497DAA19211EEdff47f25384cdc3";
 const COMET_USDT = "0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840";
 
-// In-memory per-IP throttle. No DB by design.
+// In-memory per-IP throttle (10/min). No DB by design.
 const hits = new Map<string, number[]>();
 const WINDOW_MS = 60_000;
 const MAX_HITS = 10;
@@ -30,7 +30,8 @@ function fail(status: number, error: string) {
   return new Response(JSON.stringify({ ok: false as const, error }), { status, headers: cors });
 }
 
-/** Shared-secret gate. Browser never holds this — only our Next.js server does. */
+// Takes the request, returns true if the Bearer token matches (or no token is
+// configured — dev only). Browsers never hold this; only our Next server does.
 function authorized(req: Request): boolean {
   const expected = process.env.WORKER_AUTH_TOKEN;
   if (!expected) {

@@ -67,7 +67,7 @@ export function SectionHeading({
   );
 }
 
-/** Pulsing stand-in for content still loading. Size it via className. */
+// Pulsing stand-in for loading content. Takes sizing via className.
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <span
@@ -192,7 +192,7 @@ export function Btn({
   );
 }
 
-/** Solid-ink score dial with a gold arc. No gradients. */
+// Score dial. Takes score/max, returns the solid-ink dial with gold arc.
 export function ScoreDial({ score, max = 900 }: { score: number; max?: number }) {
   const frac = Math.max(0, Math.min(1, score / max));
   const arc = (frac * 578).toFixed(0);

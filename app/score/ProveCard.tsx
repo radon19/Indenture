@@ -23,6 +23,8 @@ export type SubmitView =
       label: string;
     };
 
+// Check → submit card. Takes chain/tx state + callbacks, renders the proof
+// steps, the checked summary, and the submit / thanks / failure views.
 export default function ProveCard({
   chainKey,
   setChainKey,

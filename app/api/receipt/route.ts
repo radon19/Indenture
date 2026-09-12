@@ -5,7 +5,8 @@ import { db } from "@/app/lib/db";
 import { creditScoreAbi } from "@/app/lib/abi";
 import { ADDRESSES } from "@/app/lib/site";
 
-/** GET /api/receipt?user=0x… — one wallet's score + filed proofs. */
+// GET /api/receipt?user=0x… — takes a wallet, returns chain score + filed
+// proofs in one call. Halves fail independently: DB down still returns score.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const user = (searchParams.get("user") ?? "").trim();

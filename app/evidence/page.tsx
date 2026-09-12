@@ -15,6 +15,8 @@ const KINDS: { id: Kind; label: string }[] = [
   { id: "liquidation", label: "Liquidations" },
 ];
 
+// Evidence explorer. Takes protocol/kind filters, renders live totals,
+// per-protocol cards, and the proof table (skeletons while loading).
 export default function EvidencePage() {
   const [protocol, setProtocol] = useState<"all" | Protocol>("all");
   const [kind, setKind] = useState<Kind>("all");

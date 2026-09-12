@@ -6,7 +6,7 @@ import { recordProof } from "@/app/lib/evidence";
 
 const SCORES = "0xFA19b4DDCEA765Ce8662ec9ea15438Adce44E237";
 
-// In-memory per-IP throttle. Persistence would need the DB this guards.
+// In-memory per-IP throttle (20 req/min). Persistence would need the DB this guards.
 const hits = new Map<string, number[]>();
 
 function throttled(ip: string): boolean {
@@ -17,11 +17,9 @@ function throttled(ip: string): boolean {
   return arr.length > 20;
 }
 
-/**
- * Evidence is write-verified, not writer-authenticated: a browser cannot hold
- * a secret, so instead the row must point at a real, successful `execute()`
- * on-chain. Forging a row costs a real ingest — at which point it is true.
- */
+// Takes an execute() hash, returns true if it's a real successful ingest of
+// the score contract. Write-verified, not writer-authenticated: forging a row
+// costs a real ingest — at which point it is true.
 async function ingestConfirmed(execHash: string): Promise<boolean> {
   if (!/^0x[0-9a-fA-F]{64}$/.test(execHash)) return false;
   const rpc = process.env.NEXT_PUBLIC_CREDITCOIN_RPC_URL;
@@ -35,7 +33,8 @@ async function ingestConfirmed(execHash: string): Promise<boolean> {
   }
 }
 
-/** GET /api/evidence?protocol=aave|spark|compound&kind=repay|liquidation */
+// GET /api/evidence?protocol=&kind= — takes filters, returns rows + totals +
+// breakdown. DB down returns the static floor (offline:true), never a 500.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const protocol = searchParams.get("protocol");
@@ -82,7 +81,8 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/evidence — filed by the frontend after a confirmed ingest. */
+// POST /api/evidence — takes the proven-call fields + execHash, verifies the
+// ingest on-chain, stores one deduped row. Any store failure is a 503.
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   if (throttled(ip)) {

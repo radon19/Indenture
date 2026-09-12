@@ -1,8 +1,6 @@
 
-/**
- * Retrieval hooks. useCreditScore is live; the rest follow the same pattern.
- * Search TODO(retrieval) for remaining wiring points.
- */
+// Retrieval hooks: address in, live chain/API views out.
+
 import { useEffect, useState } from "react";
 import { ADDRESSES, type TierName } from "./site";
 import { useReadContract } from "wagmi";
@@ -39,6 +37,8 @@ const EMPTY_CREDIT: CreditView = {
 
 
 
+// Takes a wallet address, reads previewCredit, returns the score view.
+// Bad/empty address returns nulls without calling the chain.
 export function useCreditScore(_address?: string): {
   data: CreditView
   isLoading: boolean
@@ -105,6 +105,7 @@ export type Quote = {
   ready: boolean;
 };
 
+// Takes the debt textbox, returns mUSDC wei (6 decimals) or null if invalid.
 function tryParseDebt(debt: string): bigint | null {
   try {
     if (!debt.trim()) return null;
@@ -114,6 +115,7 @@ function tryParseDebt(debt: string): bigint | null {
   }
 }
 
+// Takes the lock textbox, returns CTC wei (18 decimals) or null if invalid.
 function tryParseLocked(locked: string): bigint | null {
   try {
     if (!locked.trim()) return null;
@@ -123,6 +125,8 @@ function tryParseLocked(locked: string): bigint | null {
   }
 }
 
+// Takes user + debt/lock text, reads pool quotes, returns collateral need,
+// max borrow, and whether the lock covers it. Not ready until debt parses.
 export function useBorrowQuote(
   userAddress: string | undefined,
   debt: string,
@@ -186,6 +190,8 @@ export function useBorrowQuote(
   };
 }
 
+// Takes a wallet address, reads the pool position, returns formatted
+// collateral/debt/rate plus a refetch for post-tx refreshes.
 export function usePosition(userAddress?: string): {
   collateral: string | null;
   debt: string | null;
@@ -232,6 +238,8 @@ export const EXPLORERS: Record<number, string> = {
   3: "https://etherscan.io",
 };
 
+// Takes protocol/kind filters, fetches /api/evidence, returns rows plus
+// totals. Keeps old rows visible until the new set lands.
 export function useEvidence(protocol: string, kind: string): {
   rows: EvidenceRow[];
   loading: boolean;

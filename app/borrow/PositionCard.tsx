@@ -34,6 +34,8 @@ export type PositionView = {
   rate: number | null;
 };
 
+// Open-position card. Takes position + repay/withdraw state, renders the
+// approve→repay flow and the debt-gated withdraw form.
 export default function PositionCard({
   tier,
   position,

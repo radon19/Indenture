@@ -34,7 +34,7 @@ export function need(name: string): string {
   return v;
 }
 
-/** Short human message out of ethers/RPC blobs. Never leaks payload JSON. */
+// Takes any thrown value, returns one short human line. Never leaks payload JSON.
 export function cleanError(e: unknown): string {
   const rec = (typeof e === "object" && e !== null ? e : {}) as Record<string, unknown>;
   const raw =
@@ -89,7 +89,8 @@ const addr = (t: string) => ethers.getAddress("0x" + t.slice(-40));
 const AAVE_V3_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 const SPARK_POOL = "0xC13e21B648A5Ee794902342038FF3aDAB66BE987";
 
-/** Same events as Aave by design (Spark is a fork) — emitter tells them apart. */
+// Takes a log emitter, returns aave/spark by pool address. Same events by
+// design (Spark is a fork) — emitter tells them apart.
 function aaveLikeProtocol(emitter: string): "aave" | "spark" | "unknown" {
   const lc = emitter.toLowerCase();
   if (lc === AAVE_V3_POOL.toLowerCase()) return "aave";
@@ -97,7 +98,8 @@ function aaveLikeProtocol(emitter: string): "aave" | "spark" | "unknown" {
   return "unknown";
 }
 
-/** Best-effort read of what a receipt proves. Contract remains the judge. */
+// Takes receipt logs + Comet addresses, returns best-effort protocol/kind/
+// borrower/amount. Contract remains the judge.
 export function summarizeLogs(
   logs: { address: string; topics: string[]; data: string }[],
   cometUSDC: string,
@@ -154,7 +156,8 @@ export async function fetchReceipt(txHash: string, chainKey: number) {
   return rec;
 }
 
-/** Full attestation → execute-ready args. Holds no keys. */
+// Takes a tx hash + chain key, builds the attestation, returns execute-ready
+// args. Holds no keys.
 export async function proveTx(txHash: string, chainKey: number): Promise<ExecuteArgs> {
   if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) throw new Error("bad tx hash shape");
   if (chainKey !== 1 && chainKey !== 3) throw new Error("chainKey must be 1 or 3");

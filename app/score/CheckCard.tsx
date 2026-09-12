@@ -5,6 +5,7 @@ import { Card, Field, TextInput, Btn, EmptyState, TierBadge, type TierName } fro
 import type { CreditView } from "../lib/stubs";
 import { formatUnits } from "viem";
 
+// Takes 18-decimal wei string, returns grouped $ string. Unparseable → "—".
 export function usd(raw: string | null): string {
   if (raw == null) return "—";
   try {
@@ -25,6 +26,8 @@ const TIER_BG: Record<TierName, string> = {
   Platinum: "bg-[#1c2723]",
 };
 
+// Score lookup card. Takes query state + credit view, renders the tier panel
+// and links out to the printable receipt for the looked-up wallet.
 export default function CheckCard({
   query,
   setQuery,

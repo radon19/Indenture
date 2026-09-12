@@ -6,7 +6,7 @@
 
 ### Portable On-Chain Credit — Prove Repayment Once, Borrow Everywhere
 
-**Cross-chain attested scores. Undercollateralized loans. Printable proofs.**
+**Cross-chain attested scores. Undercollateralized loans. Printable, verifiable Proof-of-Record receipts.**
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js&logoColor=white&style=flat-square)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white&style=flat-square)](https://www.typescriptlang.org/)
@@ -29,7 +29,7 @@ terms, and print a verifiable Proof of Record.
 
 **Live: [indenture.vercel.app](https://indenture.vercel.app)**
 
-Built for judges who verify and recruiters who read code.
+Built with love by Kedar.
 
 </div>
 

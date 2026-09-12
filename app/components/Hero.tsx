@@ -22,6 +22,8 @@ function GitHubMark({ className = "h-4.5 w-4.5" }: { className?: string }) {
   );
 }
 
+// Landing page. Loads the live proved count, renders hero + receipt lookup +
+// how-it-works + tiers + trust sections.
 function Hero() {
   const [totalProved, setTotalProved] = useState<number | null>(null);
   const [receiptAddr, setReceiptAddr] = useState("");
