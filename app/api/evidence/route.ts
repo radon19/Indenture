@@ -24,7 +24,7 @@ function throttled(ip: string): boolean {
  */
 async function ingestConfirmed(execHash: string): Promise<boolean> {
   if (!/^0x[0-9a-fA-F]{64}$/.test(execHash)) return false;
-  const rpc = process.env.CREDITCOIN_RPC_URL;
+  const rpc = process.env.NEXT_PUBLIC_CREDITCOIN_RPC_URL;
   if (!rpc) return false;
   try {
     const client = createPublicClient({ chain: creditCoin3Testnet, transport: http(rpc) });
