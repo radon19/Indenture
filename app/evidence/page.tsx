@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card, SectionHeading, EmptyState, Skeleton } from "../components/ui";
-import { PROTOCOLS, PROTOCOL_LABEL, type Protocol } from "../lib/site";
+import { ADDRESSES, PROTOCOLS, PROTOCOL_LABEL, type Protocol } from "../lib/site";
 import { EXPLORERS } from "../lib/stubs";
 import { useEvidence } from "../lib/stubs";
 
@@ -14,6 +14,9 @@ const KINDS: { id: Kind; label: string }[] = [
   { id: "repay", label: "Repayments" },
   { id: "liquidation", label: "Liquidations" },
 ];
+
+// Source chainKeys (creditScore.sol:13-14) to human labels.
+const CHAIN_LABEL: Record<number, string> = { 3: "Ethereum", 1: "Sepolia" };
 
 // Evidence explorer. Takes protocol/kind filters, renders live totals,
 // per-protocol cards, and the proof table (skeletons while loading).
@@ -63,6 +66,26 @@ export default function EvidencePage() {
         ))}
       </div>
 
+      <Card className="mt-4 p-5">
+        <p className="text-[15px] font-semibold tracking-tight">How each row was verified</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
+          Every row is a source transaction proved by the Attestcoin block-prover precompile{" "}
+          <code className="rounded bg-parchment px-1.5 py-0.5 font-mono text-[12px] text-ink">0xFD2</code>{" "}
+          (Merkle inclusion + continuity) and ingested via{" "}
+          <code className="rounded bg-parchment px-1.5 py-0.5 font-mono text-[12px] text-ink">
+            OnChainCreditScore.execute()
+          </code>{" "}
+          on Creditcoin — replay-guarded by query id, decoded on-chain, no oracle. Registry{" "}
+          <code className="rounded bg-parchment px-1.5 py-0.5 font-mono text-[12px] text-ink">
+            {ADDRESSES.creditcoinTestnet.creditScore}
+          </code>
+          .{" "}
+          <Link href="/docs" className="text-gold-deep underline underline-offset-2 hover:text-ink">
+            How attestation works
+          </Link>
+        </p>
+      </Card>
+
       <div className="mt-8 flex flex-wrap items-center gap-2">
         <FilterPill active={protocol === "all"} onClick={() => setProtocol("all")}>
           All protocols
@@ -82,10 +105,11 @@ export default function EvidencePage() {
 
       <Card className="mt-4 overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] text-left text-[13px]">
+        <table className="w-full min-w-[700px] text-left text-[13px]">
           <thead>
               <tr className="border-b border-line bg-parchment font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
               <th className="px-4 py-2.5 font-medium">Transaction</th>
+              <th className="px-4 py-2.5 font-medium">Chain</th>
               <th className="px-4 py-2.5 font-medium">Protocol</th>
               <th className="px-4 py-2.5 font-medium">Kind</th>
               <th className="px-4 py-2.5 font-medium">Amount</th>
@@ -98,6 +122,9 @@ export default function EvidencePage() {
                   <tr key={`skeleton-${i}`} className="border-b border-line/60 last:border-0">
                     <td className="px-4 py-2.5">
                       <Skeleton className="h-4 w-36" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Skeleton className="h-4 w-20" />
                     </td>
                     <td className="px-4 py-2.5">
                       <Skeleton className="h-4 w-20" />
@@ -125,6 +152,7 @@ export default function EvidencePage() {
                         {r.txHash.slice(0, 10)}…{r.txHash.slice(-6)} ↗
                       </a>
                     </td>
+                    <td className="px-4 py-2.5">{CHAIN_LABEL[r.chainKey] ?? `Chain ${r.chainKey}`}</td>
                     <td className="px-4 py-2.5">{r.protocol}</td>
                     <td className="px-4 py-2.5">{r.kind}</td>
                     <td className="px-4 py-2.5">{r.amount}</td>
